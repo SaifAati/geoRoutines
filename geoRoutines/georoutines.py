@@ -1,0 +1,786 @@
+import os
+import sys
+import warnings
+
+import numpy as np
+
+from scipy.stats import norm
+from scipy import stats
+
+import gdal, gdalconst
+import ogr, osr
+import rasterio
+from pathlib import Path
+
+import geospatialroutine.FilesCommandRoutine as fileRT
+import geospatialroutine.FootPrint as fpRT
+import geospatialroutine.Routine_Lyr as lyrRT
+
+
+class cgeoStat:
+    def __init__(self, inputArray, displayValue=True):
+        sample = np.ma.masked_invalid(inputArray)
+        mask = np.ma.getmask(sample)
+
+        # Remove mask and array to vector
+        if isinstance(sample, np.ma.MaskedArray):  # check if the sample was masked using the class numpy.ma.MaskedArray
+            sample = sample.compressed()  ## return all the non-masked values as 1-D array
+        else:
+            if sample.ndim > 1:  # if the dimension of the array more than 1 transform it to 1-D array
+                sample = sample.flatten()
+        self.sample = sample
+        # Estimate initial sigma and RMSE
+        (self.mu, self.sigma) = norm.fit(sample)
+        self.sigma_ = '%.3f' % (self.sigma)
+        temp = np.square(sample)
+        temp = np.ma.masked_where(temp <= 0, temp)
+        self.RMSE = '%.3f' % (np.ma.sqrt(np.ma.mean(temp)))
+
+        self.max = '%.3f' % (np.nanmax(sample))
+        self.min = '%.3f' % (np.nanmin(sample))
+        self.std = '%.3f' % (np.nanstd(sample))
+        self.mean = '%.3f' % (np.nanmean(sample))
+        self.median = '%.3f' % (np.nanmedian(sample))
+        self.mad = '%.3f' % (stats.median_absolute_deviation(sample))
+        self.nmad = '%.3f' % (1.4826 * stats.median_absolute_deviation(sample))
+        self.ce68 = stats.norm.interval(0.68, loc=self.mu, scale=self.sigma)
+        self.ce90 = stats.norm.interval(0.9, loc=self.mu, scale=self.sigma)
+        self.ce95 = stats.norm.interval(0.95, loc=self.mu, scale=self.sigma)
+        self.ce99 = stats.norm.interval(0.99, loc=self.mu, scale=self.sigma)
+
+        if displayValue:
+            print("mu, sigma", self.mu, self.sigma)
+            print("RMSE=", self.RMSE)
+            print("max=", self.max, "min=", self.min, "std=", self.std, "mean=", self.mean, "median", self.median,
+                  "mad=",
+                  self.mad, "nmad=", self.nmad)
+            print("CE68=", self.ce68, "CE90=", self.ce90, "CE95=", self.ce95, "CE99=", self.ce99)
+
+
+class RasterInfo:
+    def __init__(self, inputRaster, printInfo=False):
+        self.error = False
+        try:
+            ## Open the image using GDAL
+            self.rasterPath = inputRaster
+            self.rasterName = os.path.basename(inputRaster)
+            self.raster = gdal.Open(self.rasterPath)
+            self.geoTrans = self.raster.GetGeoTransform()
+            self.GetRasterInfo(printInfo)
+        except:
+            print('Problem when loading image with GDAL:', self.rasterPath, sys.exc_info())
+            self.error = True
+            return
+
+    def GetRasterInfo(self, printInfo):
+        if self.error == False:
+            self.xOrigin = self.geoTrans[0]
+            self.yOrigin = self.geoTrans[3]
+            self.pixelWidth = self.geoTrans[1]
+            self.pixelHeight = self.geoTrans[5]
+            self.nbBand = self.raster.RasterCount
+            self.rasterWidth = self.raster.RasterXSize
+            self.rasterHeight = self.raster.RasterYSize
+            self.rasterDataType = []
+            for i in range(self.nbBand):
+                band = self.raster.GetRasterBand(1)
+                self.rasterDataType.append(gdal.GetDataTypeName(band.DataType))
+                del band
+            try:
+                self.validMapInfo = True
+                projection = self.raster.GetProjection()
+                self.proj = osr.SpatialReference(wkt=self.raster.GetProjection())
+                self.EPSG_Code = self.proj.GetAttrValue('AUTHORITY', 1)
+                src = rasterio.open(self.rasterPath)
+                crs = src.crs
+                epsg_spare = int(str(crs).split(":")[1])
+                if epsg_spare != self.EPSG_Code:
+                    self.EPSG_Code = epsg_spare
+                self.imgDimsMap, self.imgDimsPix = self.RasterDims()
+
+            except:
+                self.validMapInfo = False
+                self.proj = None
+                self.EPSG_Code = None
+            self.rpcs = self.raster.GetMetadata('RPC')
+            # dataInfo["RPC"] = rpcs
+            self.metaData = self.raster.GetMetadata()
+            self.bandInfo = []
+            self.rasterDataType = self.raster.GetRasterBand(1).DataType
+            for band_ in range(self.nbBand):
+                self.bandInfo.append(self.raster.GetRasterBand(band_ + 1).GetDescription())
+
+        if printInfo == True:
+            print(repr(RasterInfo(self.rasterPath)))
+
+    def ImageAsArray(self, bandNumber=1):
+        """
+        :param imagePath:
+        :param bandNumber:
+        :return: image as array
+        """
+        raster = self.raster
+        # Transform image to array
+        imageAsArray = np.array(raster.GetRasterBand(bandNumber).ReadAsArray())
+
+        return imageAsArray
+
+    def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
+        raster = self.raster
+        # Transform image to array
+        xSize = (xOffsetMax - xOffsetMin) + 1
+        ySize = (yOffsetMax - yOffsetMin) + 1
+        imageAsArray = np.array(
+            raster.GetRasterBand(bandNumber).ReadAsArray(int(xOffsetMin), int(yOffsetMin), int(xSize), int(ySize)))
+        return imageAsArray
+
+    def MultiBandsRaster2Array(self):
+        """
+        Improve with Xarray
+        :param imageInfo:
+        :return:
+        """
+
+        array = np.empty((self.nbBand, self.rasterHeight, self.rasterWidth))
+        for i in range(self.nbBand):
+            array[i] = self.ImageAsArray(bandNumber=i + 1)
+
+        return array
+
+    def Pixel2Map(self, x, y):
+        """
+        :Method : convert pixel coordinate to map coordinate,
+        :Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
+        :param imagePath: path of the image  : string
+        :param x: xPixel coordinate : int or float
+        :param y: yPixel coordinate: int or float
+        :return: xMap,yMap : tuple  (non integer coordinates)
+        """
+        rtnX = self.geoTrans[2]
+        rtnY = self.geoTrans[4]
+        ## Apply affine transformation
+        mat = np.array([[self.pixelWidth, rtnX], [rtnY, self.pixelHeight]])
+        trans = np.array([[self.xOrigin, self.yOrigin]])
+        res = np.dot(mat, np.array([[x, y]]).T) + trans.T
+        xMap = res[0].item()
+        yMap = res[1].item()
+        return (xMap, yMap)
+
+    def Pixel2Map_Batch(self, X, Y):
+        """
+        :Method : convert pixel coordinate to map coordinate,
+        :Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
+        :param imagePath: path of the image  : string
+        :param X: list of xPixel coordinates : list of int of float
+        :param Y: list of  yPixel coordinates:  list of int or float
+        :return: xMap,yMap : tuple  (non integer coordinates)
+        """
+        X_map = []
+        Y_map = []
+        for x, y in zip(X, Y):
+            xMap_, yMap_ = self.Pixel2Map(x=x, y=y)
+            X_map.append(xMap_)
+            Y_map.append(yMap_)
+        return (X_map, Y_map)
+
+    def Map2Pixel(self, x, y):
+        """
+        :Method : convert coordinate from map space to image space,
+            Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
+        :param imagePath: path of the image  : string
+        :param x: xMap coordinate : int or float
+        :param y: yMap coordinate: int or float
+        :return: coordinate in image space : tuple in pix
+        """
+
+        ## Apply inverse affine transformation
+        rtnX = self.geoTrans[2]
+        rtnY = self.geoTrans[4]
+        ## Apply affine transformation
+        mat = np.array([[self.pixelWidth, rtnX], [rtnY, self.pixelHeight]])
+        trans = np.array([[self.xOrigin, self.yOrigin]])
+
+        temp = np.array([[x, y]]).T - trans.T
+        res = np.dot(np.linalg.inv(mat), temp)
+        xPx = res[0].item()
+        yPx = res[1].item()
+
+        if xPx < 0 or xPx > self.rasterWidth:
+            warnings.warn("xPix outside the image dimension", DeprecationWarning, stacklevel=2)
+        if yPx < 0 or yPx > self.rasterHeight:
+            warnings.warn("yPix outside the image dimension", DeprecationWarning, stacklevel=2)
+
+        return (xPx, yPx)
+
+    def Map2Pixel_Batch(self, X, Y):
+        """
+        :Method : convert coordinate from map space to image space,
+            Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
+        :param imagePath: path of the image  : string
+        :param X: list of xMap coordinate : list of int or float
+        :param Y: list of yMap coordinate: list of int or float
+        :return: coordinate in image space : tuple in pix
+        """
+
+        X_pix = []
+        Y_pix = []
+        for x, y in zip(X, Y):
+            xPix, yPix = self.Map2Pixel(x=x, y=y)
+            X_pix.append(xPix)
+            Y_pix.append(yPix)
+        return (X_pix, Y_pix)
+
+    def RasterDims(self):
+
+        ds = rasterio.open(self.rasterPath)
+        bounds = ds.bounds
+        imgDimsMap = {"x0Map": bounds.left,
+                      "xfMap": bounds.right,
+                      "y0Map": bounds.bottom,
+                      "yfMap": bounds.top}
+        x0, y0 = self.Map2Pixel(x=imgDimsMap.get("x0Map"), y=imgDimsMap.get("y0Map"))
+        xf, yf = self.Map2Pixel(x=imgDimsMap.get("xfMap"), y=imgDimsMap.get("yfMap"))
+        imgDimsPix = {"x0Pix": int(x0), "xfPix": int(xf), "y0Pix": int(y0), "yfPix": int(yf)}
+        return list(imgDimsMap.values()), list(imgDimsPix.values())
+
+    def __repr__(self):
+        return """
+        # Raster Information :
+            Error = {}
+            Raster = {}
+            Number  of Bands = {}
+            DataType = {}
+        # Dimensions :
+            Width = {}
+            Height = {}
+            Resolution = {}
+        # Map Information :
+            MapInfo = {}
+            Geo Transformation  = {}
+            EPSG = {}
+            Projection = {}
+            BandInfo ={}
+            Metadata ={}
+        # Raster location:
+            Raster Name = {}
+            Raster path = {}""".format(self.error,
+                                       self.raster,
+                                       self.nbBand,
+                                       self.rasterDataType,
+                                       self.rasterWidth,
+                                       self.rasterHeight,
+                                       self.pixelWidth,
+                                       self.validMapInfo,
+                                       self.geoTrans,
+                                       self.EPSG_Code,
+                                       self.proj,
+                                       self.bandInfo,
+                                       self.metaData,
+                                       self.rasterName,
+                                       self.rasterPath)
+
+
+# =====================================================================================================================#
+def WriteRaster(oRasterPath, geoTransform, arrayList, epsg=4326, dtype=gdal.GDT_Float32, metaData=[],
+                resample_alg=gdal.GRA_Lanczos, descriptions=None, noData=None, progress=False,driver='GTiff' ):
+    """
+    https://gdal.org/python/osgeo.gdalconst-module.html
+    geoTransfrom its an affine transfromation
+    geoTransform = originX, pixelWidth, rtx, originY,rty, pixelHeight
+    """
+    driver = gdal.GetDriverByName(driver)
+    rows, cols = np.shape(arrayList[0])
+    outRaster = driver.Create(oRasterPath, cols, rows, len(arrayList), dtype,options=["TILED=YES", "COMPRESS=LZW"])
+    outRaster.SetGeoTransform((geoTransform[0], geoTransform[1], geoTransform[2], geoTransform[3], geoTransform[4],
+                               geoTransform[5]))
+    # dst_ds = driver.CreateCopy(dst_filename, src_ds, strict=0,
+    #                            options=["TILED=YES", "COMPRESS=PACKBITS"])
+    ## Set the projection
+    if epsg != None:
+        outRasterSRS = osr.SpatialReference()
+        outRasterSRS.ImportFromEPSG(epsg)
+        outRaster.SetProjection(outRasterSRS.ExportToWkt())
+
+    outRaster.SetMetadataItem("Author", "SAIF AATI saif@caltech.edu")
+    ## Set the metadata
+    metaData_ = []
+    if metaData:
+        if isinstance(metaData, dict):
+            for key, value in metaData.items():
+                temp = [key, value]
+                metaData_.append(temp)
+        elif isinstance(metaData, list):
+            metaData_ = metaData
+
+        for mm in metaData_:
+            # print("mm    ",mm)
+            if not isinstance(mm[1], dict):
+                if not isinstance(mm[1], str):
+                    str_ = str(mm[1])
+                    outRaster.SetMetadataItem(mm[0], str_)
+                else:
+                    outRaster.SetMetadataItem(mm[0], mm[1])
+    ## Write the data
+    for i in range(len(arrayList)):
+        outband = outRaster.GetRasterBand(i + 1)
+        outband.WriteArray(arrayList[i], resample_alg=resample_alg)
+        if noData != None:
+            print("No data=", noData)
+            outband.SetNoDataValue(noData)
+        if descriptions != None:
+            outband.SetDescription(descriptions[i])
+            # outBand.SetRasterCategoryNames(descriptions[i])
+        if progress:
+            print("Writing band number: ", i + 1, " ", i + 1, "/", len(arrayList))
+
+    outband.FlushCache()
+    return oRasterPath
+
+
+def GeoTransfomAsArray(geoTrans):
+    xOrigin = geoTrans[0]
+    yOrigin = geoTrans[3]
+    pixelWidth = geoTrans[1]
+    pixelHeight = geoTrans[5]
+    rtnX = geoTrans[2]  #
+    rtnY = geoTrans[4]  #
+    ## Apply affine transformation
+    trans = np.zeros((3, 3))
+    trans[0, 0] = pixelWidth
+    trans[0, 1] = rtnX
+    trans[1, 0] = rtnY
+    trans[1, 1] = pixelHeight
+    trans[0, 2] = xOrigin
+    trans[1, 2] = yOrigin
+    trans[2, 2] = 1
+
+    return trans
+
+
+# =====================================================================================================================#
+
+def DataMemory(dataType):
+    gdalTypesLib = [gdal.GDT_Unknown, gdal.GDT_Byte, gdal.GDT_UInt16, gdal.GDT_Int16, gdal.GDT_UInt32, gdal.GDT_Int32,
+                    gdal.GDT_Float32, gdal.GDT_Float64, gdal.GDT_CInt16, gdal.GDT_CInt32, gdal.GDT_CFloat32,
+                    gdal.GDT_CFloat64]
+
+    dataTypeLib = {"uint8": 1, "int8": 1, "uint16": 2, "int16": 3, "uint32": 4, "int32": 5,
+                   "float32": 6, "float64": 7, "complex64": 10, "complex128": 1}
+    dataTypeMemo = {"uint8": 8, "int8": 8, "uint16": 16, "int16": 16, "uint32": 32, "int32": 32,
+                    "float32": 32, "float64": 64, "complex64": 64, "complex128": 128}
+    for index, val in enumerate(dataTypeLib.items()):
+        if dataType == val[1]:
+            # print(index,val)
+            memoType = dataTypeMemo.get(val[0])
+    return memoType
+
+
+def ParseResampMethod(method):
+    """
+    Parse resampling method
+    :param method:
+    :return:
+    """
+    if method == 'near':
+        # Note: Nearest respects nodata when downsampling
+        return gdal.GRA_NearestNeighbour
+    elif method == 'bilinear':
+        return gdal.GRA_Bilinear
+    elif method == 'cubic':
+        return gdal.GRA_Cubic
+    elif method == 'cubicspline':
+        return gdal.GRA_CubicSpline
+    elif method == 'average':
+        return gdal.GRA_Average
+    elif method == 'lanczos':
+        return gdal.GRA_Lanczos
+    elif method == 'mode':
+        # Note: Mode respects nodata when downsampling, but very slow
+        return gdal.GRA_Mode
+    elif method == 'sinc':
+        print("Not implemented yet, it is the sinc method implmented in cosi-corr")
+        sys.exit("Invalid resampling method")
+    else:
+        algo = None
+        sys.exit("Invalid resampling method")
+
+
+def ComputeEpsg(lon, lat):
+    """
+    Compute the EPSG code of the UTM zone which contains
+    the point with given longitude and latitude
+
+    Args:
+        lon (float): longitude of the point
+        lat (float): latitude of the point
+
+    Returns:
+        int: EPSG code
+    """
+    # UTM zone number starts from 1 at longitude -180,
+    # and increments by 1 every 6 degrees of longitude
+    zone = int((lon + 180) // 6 + 1)
+
+    # EPSG = CONST + ZONE where CONST is
+    # - 32600 for positive latitudes
+    # - 32700 for negative latitudes
+    const = 32600 if lat > 0 else 32700
+    # print("const=",const,"  zone=",zone)
+    return const + zone
+
+
+def Set_crs(epsg=4326):
+    outRasterSRS = osr.SpatialReference()
+    outRasterSRS.ImportFromEPSG(epsg)
+    print("-----", outRasterSRS)
+
+    return outRasterSRS
+
+
+def GetWindow(iRasterPath, windowGeo):
+    # ShisperWindow = 74.467995439,74.653396304,36.302775965,36.485637092 [EPSG:4326]
+    rasterInfo = RasterInfo(inputRaster=iRasterPath)
+    topLeft = rasterInfo.Map2Pixel(windowGeo[0], windowGeo[-1])
+    topRight = rasterInfo.Map2Pixel(windowGeo[1], windowGeo[-1])
+    bottumLeft = rasterInfo.Map2Pixel(windowGeo[0], windowGeo[2])
+    bottumRight = rasterInfo.Map2Pixel(windowGeo[1], windowGeo[2])
+    width = np.abs(topRight[0] - topLeft[0])
+    height = np.abs(topRight[1] - bottumRight[1])
+    colOff = topLeft[0]
+    rowOff = topLeft[1]
+
+    return [int(colOff), int(rowOff), int(width), int(height)]
+
+
+def ProjDatumIdentical(proj1, proj2):
+    print("Check if bothe projection are identical")
+    print("---- Working progress ----")
+    print("--- Error! Sorry!---")
+    return False
+
+
+def CreateProj(epsgCode=4326):
+    proj = osr.SpatialReference()
+    proj.ImportFromEPSG(epsgCode)
+    # proj = target.GetProjection()
+    return proj
+
+
+# =====================================================================================================================#
+def Create_MultiBandsRaster_form_MultiRasters(rastersList, outputPath, bandNumber=1):
+    """
+
+    :param rastersFolder:
+    :param outputPath:
+    :return:
+    """
+    arrayList = []
+    bandDescription = []
+    for img_ in rastersList:
+        rasterInfo = RasterInfo(img_)
+        array = rasterInfo.ImageAsArray(bandNumber=bandNumber)
+        arrayList.append(array)
+        bandDescription.append("Band" + str(bandNumber) + "_" + Path(img_).stem)
+    WriteRaster(oRasterPath=outputPath, geoTransform=rasterInfo.geoTrans, arrayList=arrayList,
+                epsg=rasterInfo.EPSG_Code, descriptions=bandDescription)
+    # WriteRaster(refRasterPath=rastersList[0], newRasterPath=outputPath, Listarrays=arrayList,
+    #             numberOfBands=len(rastersList), descriptions=bandDescription)
+    return outputPath
+
+
+def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
+    """
+
+    :param inputRaster:
+    :param output:
+    :return:
+    """
+    # rasterInfo = GetRasterInfo(inputRaster)
+    rasterInfo = RasterInfo(img_)
+    print(rasterInfo["NbBands"])
+    for i in range(rasterInfo["NbBands"]):
+        # array = ImageAsArray(rasterInfo, i + 1)
+
+        array = rasterInfo.ImageAsArray(bandNumber=i + 1)
+        WriteRaster(oRasterPath=os.path.join(output, "Img_Band_" + str(i + 1) + ".tif"),
+                    geoTransform=rasterInfo.geoTrans, arrayList=[array],
+                    epsg=rasterInfo.EPSG_Code)
+        # WriteRaster(refRasterPath=inputRaster, newRasterPath=os.path.join(output, "Img_Band_" + str(i + 1) + ".tif"),
+        #             Listarrays=[array], numberOfBands=1)
+    return
+
+
+# =====================================================================================================================#
+def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False):
+    path = os.path.dirname(rasterList[0])
+    for img_ in rasterList:
+        if outputFolder == None:
+            outputFile = os.path.join(path, os.path.basename(img_) + "_crop")
+        else:
+            outputFile = os.path.join(outputFolder, os.path.basename(img_) + "_crop")
+
+        if vrt == True:
+            gdal.Translate(destName=os.path.join(outputFile + ".vrt"),
+                           srcDS=gdal.Open(img_),
+                           projWin=areaCoord, outputType=gdal.GDT_Float64)
+
+        else:
+            format = "GTiff"
+            gdal.Translate(destName=os.path.join(outputFile + ".tif"),
+                           srcDS=gdal.Open(img_),
+                           projWin=areaCoord, format=format, outputType=gdal.GDT_Float64)
+
+    return
+
+
+def GetOverlapAreaOfRasters(rasterPathList):
+    """
+    Return the intersection area between a list of rasters
+    :param rasterPathList: list of the raster paths
+    :return: 0 if no intersection
+             geojson format of the intersection are, and write on the same directory of the images a temp.geojson
+             that contain the intersection are footprint
+    """
+    path = os.path.dirname(rasterPathList[0])
+    fpPathList = []
+    fpTempFolder = fileRT.CreateDirectory(path, "Temp_SA_FP", cal="y")
+    for img_ in rasterPathList:
+        extent, fpPath = fpRT.RasterFootprint(rasterPath=img_, writeFp=True,
+                                              savingPath=os.path.join(fpTempFolder, Path(img_).stem))
+        fpPathList.append(fpPath)
+    # #=============================#
+    # from itertools import combinations
+    # res = list(combinations(fpPathList, 2))
+    # for pair in res:
+    #     print(Path(pair[0]).stem,"||",Path(pair[1]).stem)
+    #     interObj = lyrRT.Intersection(fp1=pair[0], fp2=pair[1], dispaly=True)
+    #     
+
+    # print("fpPath:", fpPathList)
+
+    overlayTemp = lyrRT.Intersection(fp1=fpPathList[2], fp2=fpPathList[1], dispaly=False)
+    print(overlayTemp.res_inter)
+    if overlayTemp.intersection != 0:
+
+        tempIntersect = fpRT.WriteJson(features=overlayTemp.res_inter,
+                                       outputFile=os.path.join(fpTempFolder, "Temp"))
+        intersection = overlayTemp.intersection
+        del overlayTemp
+        index = 2
+        while intersection != 0 and index < len(fpPathList):
+            print("---", Path(fpPathList[index]).stem, "----")
+            overlay = lyrRT.Intersection(fp2=tempIntersect, fp1=fpPathList[index], dispaly=False)
+            intersection = overlay.intersection
+
+            index += 1
+            if intersection != 0:
+                print(overlay.res_inter)
+                tempIntersect = fpRT.WriteJson(features=overlay.res_inter,
+                                               outputFile=os.path.join(fpTempFolder, "Temp"))
+
+        if intersection == 0 and index != len(fpPathList) - 1:
+            print("\n No overlapping between images !!!")
+            return 0
+        else:
+            print("\n Final intersection:", overlay.res_inter["geometry"])
+            from shapely.geometry import mapping
+            interDic = mapping(overlay.res_inter["geometry"])
+            coord = interDic["features"][0]["geometry"]["coordinates"][0]
+            return coord
+            # data = RTLyr.ReadVector(shpInput=tempIntersect)
+
+            # return overlay.res_inter
+    else:
+        print("\nNo overlapping between images !!!")
+        return 0
+
+
+def CropBatch(rasterList, outputFolder, vrt=False):
+    imgList = rasterList
+    coord = GetOverlapAreaOfRasters(rasterPathList=imgList)
+
+    rasterInfo = RasterInfo(imgList[0])
+
+    Lon = []
+    Lat = []
+    for coord_ in coord:
+        Lon.append(coord_[0])
+        Lat.append(coord_[1])
+
+    mapCoord = ConvCoordMap1ToMap2_Batch(X=Lat, Y=Lon, sourceEPSG=4326,
+                                         targetEPSG=rasterInfo.EPSG_Code)
+    # print("\n", mapCoord)
+
+    SubsetRasters(rasterList=imgList,
+                  areaCoord=[min(mapCoord[0]), max(mapCoord[1]), max(mapCoord[0]), min(mapCoord[1])],
+                  outputFolder=outputFolder, vrt=vrt)
+
+    # "-projwin 447225.5722201146 3949058.1522487984 458500.62972338597 3939574.181140272"
+    # "445736.44193266885 3948226.6834077216 453940.68389572675 3938979.290404687"
+    # SubsetRasters(rasterList=imgList,
+    #               areaCoord=[445736.44193266885, 3948226.6834077216, 453940.68389572675 ,3938979.290404687])
+    return
+
+
+# =====================================================================================================================#
+def ConvCoordMap1ToMap2(x, y, targetEPSG, z=None, sourceEPSG=4326, display=False):
+    """
+    :Method: convert point coordinates from source to target system
+    :param point x,y : map coordinate (e.g lon,lat)
+    :param sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
+    :param targetEPSG: target coordinate system of the point; integer
+    :return: point in target coordinate system; list =[xCoord,yCoord,zCoord]
+
+    Note: if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+    """
+
+    ## Set the source system
+
+    source = osr.SpatialReference()  # instance from SpatialReference Class
+    source.ImportFromEPSG(int(sourceEPSG))  # create a projection system based on EPSG code
+
+    ## Set the target system
+    target = osr.SpatialReference()
+    target.ImportFromEPSG(int(targetEPSG))
+
+    transform = osr.CoordinateTransformation(source,
+                                             target)  # instance of the class Coordinate Transformation
+    if z == None:
+        coord = transform.TransformPoint(x, y)
+
+    else:
+        coord = transform.TransformPoint(x, y, z)
+    if display:
+        print("{}, {}, EPSG={} ----> Easting:{}  , Northing:{} , EPSG={}".format(x, y, sourceEPSG, coord[0], coord[1],
+                                                                                 targetEPSG))
+    return coord
+
+
+def ConvertRaster2WGS84(inputPath, outputPath=None):
+    if outputPath == None:
+        outputPath = Path(inputPath).stem + "_conv_4326.tif"
+
+    gdal.Warp(outputPath, inputPath, dstSRS='EPSG:4326')
+    return outputPath
+
+
+def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
+    """
+    :Method: convert point coordinates from source to target system
+    :param point x,y : map coordinate (e.g lon,lat)
+    :param sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
+    :param targetEPSG: target coordinate system of the point; integer
+    :return: point in target coordinate system; list =[xCoord,yCoord,zCoord]
+
+    Note: if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+    Note: if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
+    """
+
+    ## Set the source system
+    # print(Z)
+    import pyproj
+
+    sourceEPSG_string = "epsg:" + str(sourceEPSG)
+    targetEPSG_string = "epsg:" + str(targetEPSG)
+    transformer = pyproj.Transformer.from_crs(sourceEPSG_string, targetEPSG_string)
+    if len(Z) == 0:
+        return transformer.transform(X, Y)
+
+    else:
+        return transformer.transform(X, Y, Z)
+
+
+def ConvertGeo2Cartesian(lon, lat, alt):
+    import pyproj
+    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+    # # print(ecef)
+    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+    # # print(lla)
+    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
+    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
+    # print( [x,y,z])
+    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+    transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
+                                            always_xy=True)
+    xpj, ypj, zpj = transproj.transform(lon, lat, alt, radians=False)
+    return [xpj, ypj, zpj]
+
+
+def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
+    import pyproj
+    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+    # # print(ecef)
+    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+    # # print(lla)
+    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
+    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
+    # print( [x,y,z])
+    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+    transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
+                                            always_xy=True)
+    Xpj, Ypj, Zpj = transproj.transform(Lon, Lat, Alt, radians=False)
+    return Xpj, Ypj, Zpj
+
+
+def ConvertCartesian2Geo(x, y, z):
+    import pyproj
+    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+    # # print(ecef)
+    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+    # # print(lla)
+    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
+    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
+    # print( [x,y,z])
+    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+    transproj = pyproj.Transformer.from_crs({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'}, "EPSG:4326",
+                                            always_xy=True)
+    lon, lat, alt = transproj.transform(x, y, z, radians=False)
+    return [lon, lat, alt]
+
+
+def ConvertCartesian2Geo_Batch(X, Y, Z):
+    import pyproj
+    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+    # # print(ecef)
+    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
+    # # print(lla)
+    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
+    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
+    # print( [x,y,z])
+    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+    transproj = pyproj.Transformer.from_crs({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'}, "EPSG:4326",
+                                            always_xy=True)
+    Lon, Lat, Alt = transproj.transform(X, Y, Z, radians=False)
+    return Lon, Lat, Alt
+
+
+# =====================================================================================================================#
+def BoundingBox2D(pts):
+    """
+    Rectangular bounding box for a list of 2D points.
+    :param pts: list of 2D points represented as 2-tuples or lists of length 2 : list
+    :return:   [x, y, w, h]: coordinates of the top-left corner, width and height of the bounding box : list
+    """
+
+    dim = len(pts[0])  # should be 2
+    bb_min = [min([t[i] for t in pts]) for i in range(dim)]
+    bb_max = [max([t[i] for t in pts]) for i in range(dim)]
+    return [bb_min[0], bb_min[1], bb_max[0] - bb_min[0], bb_max[1] - bb_min[1]]
+
+
+if __name__ == '__main__':
+    # path = "/home/cosicorr/0-WorkSpace/3D-Correlation_project/Ridgecrest/7p1_3DDA/Sets/WV_Spot_Sets/WV_Spot_sets/Results/EW_WV_Spot_MB_3DDA.tif"
+    # rasterInfo = RasterInfo(path, True)
+    # # print(rasterInfo.MultiBandsRaster2Array().shape)
+    # (xMap, yMap) = rasterInfo.Pixel2Map(100.5, 50)
+    # (xPix, yPix) = rasterInfo.Map2Pixel(xMap, yMap)
+    # print((xMap, yMap))
+    # print((xPix, yPix))
+
+    iFolder = "/home/cosicorr/0-WorkSpace/PlanetProject/Ridgecrest_PS_Evaluation/PS_SD_Evaluation/temp"
+    iCorrList = fileRT.GetFilesBasedOnExtension(iFolder)
+    workpspaceFolder = threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=iFolder, folderName="geoICA", cal="y")
+
+    ## Crop to the same extent
+    crop_threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=workpspaceFolder, folderName="Crop", cal="y")
+    CropBatch(rasterList=iCorrList, outputFolder=crop_threeDDMapsFolder)

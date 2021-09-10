@@ -1,0 +1,17 @@
+name: georoutines
+channels:
+ - conda-forge
+dependencies:
+ - python=3.7
+ - scipy
+ - numpy
+ - pandas
+ - matplotlib
+ - gdal=2.4
+ - rasterio
+ - geopandas
+ - shapely
+ - pip
+ - psutil
+ - pip:
+   - pyproj
