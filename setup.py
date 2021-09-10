@@ -20,6 +20,6 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    packages=['geoRoutine', 'geoRoutine.Filter', 'geoRoutine.Plotting',
-              'geoRoutine.VectorField','geoRoutine.Registration'],
+    packages=['geoRoutines', 'geoRoutines.Filter', 'geoRoutines.Plotting',
+              'geoRoutines.VectorField','geoRoutines.Registration'],
 )
