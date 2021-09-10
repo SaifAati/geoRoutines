@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='geospatialroutine',
-    version='0.0.4',
+    version='0.1',
     author="Saif Aati",
     author_email="saif@caltech.edu, saifaati@gmail.com",
     description="Geospatial routines",
@@ -20,6 +20,6 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    packages=['geospatialroutine', 'geospatialroutine.DEM_routine', 'geospatialroutine.Filter', 'geospatialroutine.Plotting',
-              'geospatialroutine.VectorField','geospatialroutine.Registration'],
+    packages=['geoRoutine', 'geoRoutine.Filter', 'geoRoutine.Plotting',
+              'geoRoutine.VectorField','geoRoutine.Registration'],
 )
