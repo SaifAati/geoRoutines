@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from scipy import interpolate
 from scipy.interpolate import *
-import geospatialroutine.Routine as RT
+
 import warnings
 
 from p_tqdm import p_map
@@ -293,7 +293,7 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
     :param kind: RectBivariateSpline,quintic
     :return:
     """
-    ## Note: add the possibility to perform sinc iinterpolation :
+    ## Note: add the possibility to perform sinc interpolation :
     ## Hints: https://stackoverflow.com/questions/1851384/resampling-interpolating-matrix
     ## https://www.programcreek.com/python/example/58004/numpy.sinc
     ## https://gist.github.com/gauteh/8dea955ddb1ed009b48e
@@ -308,9 +308,10 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
     if kind == "RectBivariateSpline":
         f = RectBivariateSpline(np.arange(0, lin, 1), np.arange(0, col, 1), inArray, kx=3, ky=3, s=0)
         if len(x) > 1 and len(y) > 1:
-            # res = []
+            res = []
             # res = p_map(_2Dinterp, len(x)*[f], x, y,num_cpus=50)
             for x_, y_ in zip(x, y):
+                # print(f(x_, y_).item())
                 res.append(f(x_, y_).item())
 
             return res
@@ -335,7 +336,8 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
         from scipy.interpolate import RegularGridInterpolator
         f = interpolate.RegularGridInterpolator((np.arange(0, lin, 1), np.arange(0, col, 1)), inArray,
                                                 method=kind,
-                                                bounds_error=False, fill_value= np.nan)
+                                                bounds_error=False,
+                                                fill_value= np.nan)
         return f(list(zip(x, y)))
 
 

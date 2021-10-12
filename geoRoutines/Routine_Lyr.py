@@ -1,13 +1,10 @@
 import geojson
 import geopandas
-import gdal,ogr,osr
+import gdal, ogr, osr
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-import geospatialroutine.RandomColors as randomcolsRT
-
-
+import geoRoutines.RandomColors as randomcolsRT
 
 
 class Intersection:
@@ -45,7 +42,7 @@ class Intersection:
             self.fpDF_List[1] = self.fpDF_List[1].to_crs({'init': self.fpDF_List[0].crs})
 
     def Intersect(self):
-        import geospatialroutine.georoutines as geoRT
+        import geoRoutines.georoutines as geoRT
         self.res_inter = geopandas.overlay(self.fpDF_List[0], self.fpDF_List[1], how='intersection')
         # print(self.res_inter)
         if self.res_inter.index.start == self.res_inter.index.stop:
@@ -320,7 +317,7 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None, msg=False):
         outlyr = lyr
     m_ds = mem_ds(res, extent, srs=t_srs, dtype=gdal.GDT_Byte)
     b = m_ds.GetRasterBand(1)
-    geoTransfrom  = m_ds.GetGeoTransform()
+    geoTransfrom = m_ds.GetGeoTransform()
     b.SetNoDataValue(ndv)
     gdal.RasterizeLayer(m_ds, [1], outlyr, burn_values=[1])
     a = b.ReadAsArray()
@@ -441,6 +438,7 @@ def Intersection_(fp1, fp2, display=False):
 
     return intersection
 
+
 def GetBoundsGeojson(geojsonFile, conv2UTM=False):
     if isinstance(geojsonFile, str):
         import json
@@ -472,6 +470,7 @@ def GetBoundsGeojson(geojsonFile, conv2UTM=False):
     else:
         epsg = 4326
         return lonList, latList, epsg
+
 
 ##################################################################
 ## Reference: https://automating-gis-processes.github.io/CSC18/lessons/L2/geopandas-basics.html

@@ -10,11 +10,12 @@ from scipy import stats
 import gdal, gdalconst
 import ogr, osr
 import rasterio
+from rasterio.merge import merge
 from pathlib import Path
 
-import geospatialroutine.FilesCommandRoutine as fileRT
-import geospatialroutine.FootPrint as fpRT
-import geospatialroutine.Routine_Lyr as lyrRT
+import geoRoutines.FilesCommandRoutine as fileRT
+import geoRoutines.FootPrint as fpRT
+import geoRoutines.Routine_Lyr as lyrRT
 
 
 class cgeoStat:
@@ -126,6 +127,7 @@ class RasterInfo:
         return imageAsArray
 
     def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
+        "https://gdal.org/python/osgeo.gdal-pysrc.html#Band.ReadAsArray"
         raster = self.raster
         # Transform image to array
         xSize = (xOffsetMax - xOffsetMin) + 1
@@ -281,8 +283,17 @@ class RasterInfo:
 
 
 # =====================================================================================================================#
-def WriteRaster(oRasterPath, geoTransform, arrayList, epsg=4326, dtype=gdal.GDT_Float32, metaData=[],
-                resample_alg=gdal.GRA_Lanczos, descriptions=None, noData=None, progress=False,driver='GTiff' ):
+def WriteRaster(oRasterPath,
+                geoTransform,
+                arrayList,
+                epsg=4326,
+                dtype=gdal.GDT_Float32,
+                metaData=[],
+                resample_alg=gdal.GRA_Lanczos,
+                descriptions=None,
+                noData=None,
+                progress=False,
+                driver='GTiff'):
     """
     https://gdal.org/python/osgeo.gdalconst-module.html
     geoTransfrom its an affine transfromation
@@ -290,7 +301,9 @@ def WriteRaster(oRasterPath, geoTransform, arrayList, epsg=4326, dtype=gdal.GDT_
     """
     driver = gdal.GetDriverByName(driver)
     rows, cols = np.shape(arrayList[0])
-    outRaster = driver.Create(oRasterPath, cols, rows, len(arrayList), dtype,options=["TILED=YES", "COMPRESS=LZW"])
+    # print(oRasterPath, cols, rows, len(arrayList), dtype)
+    outRaster = driver.Create(oRasterPath, cols, rows, len(arrayList), dtype,
+                              options=["TILED=YES", "COMPRESS=LZW", "BIGTIFF=YES"])
     outRaster.SetGeoTransform((geoTransform[0], geoTransform[1], geoTransform[2], geoTransform[3], geoTransform[4],
                                geoTransform[5]))
     # dst_ds = driver.CreateCopy(dst_filename, src_ds, strict=0,
@@ -334,6 +347,7 @@ def WriteRaster(oRasterPath, geoTransform, arrayList, epsg=4326, dtype=gdal.GDT_
             print("Writing band number: ", i + 1, " ", i + 1, "/", len(arrayList))
 
     outband.FlushCache()
+    outRaster = None
     return oRasterPath
 
 
@@ -511,26 +525,29 @@ def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
 
 
 # =====================================================================================================================#
-def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False):
+def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputType=gdal.GDT_Float32):
     path = os.path.dirname(rasterList[0])
+    oList = []
     for img_ in rasterList:
         if outputFolder == None:
-            outputFile = os.path.join(path, os.path.basename(img_) + "_crop")
+            outputFile = os.path.join(path, Path(img_).stem + "_crop")
         else:
-            outputFile = os.path.join(outputFolder, os.path.basename(img_) + "_crop")
+            outputFile = os.path.join(outputFolder, Path(img_).stem + "_crop")
 
         if vrt == True:
             gdal.Translate(destName=os.path.join(outputFile + ".vrt"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, outputType=gdal.GDT_Float64)
+                           projWin=areaCoord, outputType=gdal.GDT_Float32)
+            oList.append(os.path.join(outputFile + ".vrt"))
 
         else:
             format = "GTiff"
             gdal.Translate(destName=os.path.join(outputFile + ".tif"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, format=format, outputType=gdal.GDT_Float64)
+                           projWin=areaCoord, format=format, outputType=gdal.GDT_Float32)
+            oList.append(os.path.join(outputFile + ".tif"))
 
-    return
+    return oList
 
 
 def GetOverlapAreaOfRasters(rasterPathList):
@@ -619,7 +636,7 @@ def CropBatch(rasterList, outputFolder, vrt=False):
     # "445736.44193266885 3948226.6834077216 453940.68389572675 3938979.290404687"
     # SubsetRasters(rasterList=imgList,
     #               areaCoord=[445736.44193266885, 3948226.6834077216, 453940.68389572675 ,3938979.290404687])
-    return
+    return mapCoord, outputFolder
 
 
 # =====================================================================================================================#
@@ -766,6 +783,55 @@ def BoundingBox2D(pts):
     bb_min = [min([t[i] for t in pts]) for i in range(dim)]
     bb_max = [max([t[i] for t in pts]) for i in range(dim)]
     return [bb_min[0], bb_min[1], bb_max[0] - bb_min[0], bb_max[1] - bb_min[1]]
+
+
+# =====================================================================================================================#
+
+def Merge(inputList, output):
+    """
+    ### Using sub process
+    cmd = ["gdal_merge.py"]
+
+    cmd.extend(["-o", output])
+    cmd.extend(["-ot "+dtype])
+    cmd.extend(inputList)
+    print(cmd)
+    call = ""
+    for cmd_ in cmd:
+        call += cmd_ + " "
+    print(call)
+    os.system(call)
+    return
+    """
+
+    src_files_to_mosaic = []
+    for fp in inputList:
+        src = rasterio.open(fp)
+        src_files_to_mosaic.append(src)
+    # Merge function returns a single mosaic array and the transformation info
+    mosaic, out_trans = merge(src_files_to_mosaic)
+    # print(mosaic.shape)
+    #### Copy the metadata
+    out_meta = src.meta.copy()
+    crs = src.crs
+    # print(crs)
+    # Update the metadata
+    out_meta.update({"driver": "GTiff", "height": mosaic.shape[1], "width": mosaic.shape[2], "transform": out_trans,
+                     "crs": crs})  # "+proj=utm +zone=35 +ellps=GRS80 +units=m +no_defs "
+    rasterInfo = RasterInfo(inputRaster=inputList[0])
+    descriptions = rasterInfo.bandInfo  # rasterTemp["BandInfo"]
+    listArrays = []
+    for id in range(mosaic.shape[0]):
+        with rasterio.open(output, "w", **out_meta) as dest:
+            # the .astype(rasterio.int16) forces dtype to int16
+            dest.write_band(id + 1, mosaic[id, :, :])
+            dest.set_band_description(id + 1, descriptions[id])
+        listArrays.append(mosaic[id, :, :])
+
+    # WriteRaster(refRasterPath=output, newRasterPath=output, Listarrays=listArrays, numberOfBands=mosaic.shape[0],
+    #             descriptions=descriptions)
+    WriteRaster(oRasterPath=output, descriptions=descriptions, arrayList=listArrays, epsg=rasterInfo.EPSG_Code,
+                geoTransform=rasterInfo.geoTrans)
 
 
 if __name__ == '__main__':

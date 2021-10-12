@@ -9,11 +9,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm
 from pathlib import Path
 
-import geospatialroutine.Routine as RT
-from geospatialroutine.georoutines import GetWindow
-import geospatialroutine.FilesCommandRoutine as FileRT
-import geospatialroutine.georoutines as geoRT
-from geospatialroutine.Routine import Distribution
+import geoRoutines.Routine as RT
+from geoRoutines.georoutines import GetWindow
+import geoRoutines.FilesCommandRoutine as FileRT
+import geoRoutines.georoutines as geoRT
+from geoRoutines.Routine import Distribution
 
 
 def BackGroundImg(backGroundImg):
@@ -760,7 +760,8 @@ def Animation_Rasters_Maps(im1, array1List, fig, figTitleList, saveAnimation=Fal
 
 ############################################### Distribution ###########################################################
 def PlotDistribution(inputArray, xlim=[], ylim=[0, 3], xLabel='Displacement [m]',
-                     title="Displacement distribution before Offset Correction\n(full image)", nbins=50, fontSize=16):
+                     title="Displacement distribution before Offset Correction\n(full image)", nbins=50, fontSize=16,
+                     svgFig=""):
     """
     https://towardsdatascience.com/histograms-and-density-plots-in-python-f6bda88f5ac0
     """
@@ -796,9 +797,9 @@ def PlotDistribution(inputArray, xlim=[], ylim=[0, 3], xLabel='Displacement [m]'
     ax1.set_xlabel(xLabel, fontsize=fontSize)
     ax1.set_ylabel(' Number of Samples ', fontsize=fontSize)
     # ax1.xtickes(fontsize=25)
-
-    # savingFolder = "/home/cosi/2-Data/4-Shishper/FigForPaper/Offest_Correction/"
-    # plt.savefig(os.path.join(savingFolder, "distribution_before.eps"), format="eps")
+    if svgFig != "":
+        # savingFolder = "/home/cosi/2-Data/4-Shishper/FigForPaper/Offest_Correction/"
+        plt.savefig(svgFig, dpi=400)
 
     plt.show()
 
@@ -851,10 +852,10 @@ def PlotDistribution_Batch(inputArrayList, labels, colors, xlim=[-5, 5], ylim=[0
     # ax1.set_ytickes(fontsize=18)
     ax1.grid(True)
     plt.legend()
-    if saveFig:
+    if saveFig != "":
         plt.savefig(saveFig, dpi=400)
-    # else:
-    #     plt.show()
+    else:
+        plt.show()
 
     return
 

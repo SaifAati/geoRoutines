@@ -7,9 +7,9 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.stats import norm
 from scipy import ndimage
-import geospatialroutine.FilesCommandRoutine as FileRT
-import geospatialroutine.Routine as RT
-import geospatialroutine.Plotting.Plotting_Routine as Plot
+import geoRoutines.FilesCommandRoutine as FileRT
+import geoRoutines.Routine as RT
+import geoRoutines.Plotting.Plotting_Routine as Plot
 import gdal
 from pathlib import Path
 

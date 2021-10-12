@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='geospatialroutine',
+    name='geospatialroutines',
     version='0.1',
     author="Saif Aati",
     author_email="saif@caltech.edu, saifaati@gmail.com",

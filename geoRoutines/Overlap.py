@@ -1,8 +1,8 @@
 import geojson
 import geopandas
 import matplotlib.pyplot as plt
-from geospatialroutine.RandomColors import GenerateColors
-import geospatialroutine.Routine as RT
+from geoRoutines.RandomColors import GenerateColors
+import geoRoutines.Routine as RT
 class OverlappingClass:
     ## Note need to use the intersection in routine lyer
     def __init__(self, imgfp1, imgfp2, display=False):

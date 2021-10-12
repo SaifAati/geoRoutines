@@ -4,7 +4,7 @@ import os
 import geojson
 import numpy as np
 
-import geospatialroutine.RoutineWarnings as RW
+import geoRoutines.RoutineWarnings as RW
 from osgeo import gdal, ogr
 from pathlib import Path
 
@@ -31,8 +31,8 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
     :param savingPath:
     :return:
     """
-    import geospatialroutine.georoutines as geoRT
-    print("-------",rasterPath)
+    import geoRoutines.georoutines as geoRT
+    print("-------", rasterPath)
     rasterInfo = geoRT.RasterInfo(rasterPath, False)
     w = rasterInfo.rasterWidth
     h = rasterInfo.rasterHeight
@@ -46,17 +46,17 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
         print("--- Footprint will be in WGS 84 projection system --- ")
         if epsg != 4326:
             x0Map, y0Map, _ = geoRT.ConvCoordMap1ToMap2(x=rasterExtent[0],
-                                                     y=rasterExtent[2],
-                                                     targetEPSG=4326, sourceEPSG=epsg)
+                                                        y=rasterExtent[2],
+                                                        targetEPSG=4326, sourceEPSG=epsg)
             xfMap, yfMap, _ = geoRT.ConvCoordMap1ToMap2(x=rasterExtent[1],
-                                                     y=rasterExtent[-1],
-                                                     targetEPSG=4326, sourceEPSG=epsg)
+                                                        y=rasterExtent[-1],
+                                                        targetEPSG=4326, sourceEPSG=epsg)
 
             lats = x0Map, xfMap, xfMap, x0Map, x0Map
             lons = yfMap, yfMap, y0Map, y0Map, yfMap
         else:
-            lats = rasterExtent[2],rasterExtent[2],rasterExtent[3],rasterExtent[3],rasterExtent[2]
-            lons = rasterExtent[0],rasterExtent[1],rasterExtent[1],rasterExtent[0],rasterExtent[0]
+            lats = rasterExtent[2], rasterExtent[2], rasterExtent[3], rasterExtent[3], rasterExtent[2]
+            lons = rasterExtent[0], rasterExtent[1], rasterExtent[1], rasterExtent[0], rasterExtent[0]
 
 
     elif rasterInfo.rpcs:
@@ -82,7 +82,7 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
                 print("z=", z)
 
         lons, lats = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0], lin=[0, h, h, 0, 0], alt=[z, z, z, z, z],
-                                              normalized=False)
+                                        normalized=False)
         # print(lons, lats)
 
     else:
@@ -264,4 +264,3 @@ if __name__ == '__main__':
     # fp3 = os.path.join(path,"20190807_052421_1006_1B_Analytic_fp.geojson")
     # overlapObj = Overlapping(imgfp1=fp1,imgfp2=fp2,display=False)
     # rasterInof =RT.GetRasterInfo(path,True)
-
