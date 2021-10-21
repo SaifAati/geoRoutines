@@ -708,14 +708,20 @@ def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
 
 
 def ConvertGeo2Cartesian(lon, lat, alt):
+    """
+
+    Args:
+        lon:
+        lat:
+        alt:
+
+    Returns:
+
+    """
+    # TODO: the conversion is perfromed using pyproj. House implementation could be used
+    ## (see IDL verion: convert_geographic_to_cartesian)
     import pyproj
-    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
-    # # print(ecef)
-    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
-    # # print(lla)
-    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
-    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
-    # print( [x,y,z])
+
     """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
     transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
                                             always_xy=True)
@@ -724,14 +730,20 @@ def ConvertGeo2Cartesian(lon, lat, alt):
 
 
 def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
+    """
+
+    Args:
+        Lon:
+        Lat:
+        Alt:
+
+    Returns:
+
+    """
+    # TODO: the conversion is perfromed using pyproj. House implementation could be used
+    ## (see IDL verion: convert_geographic_to_cartesian)
     import pyproj
-    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
-    # # print(ecef)
-    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
-    # # print(lla)
-    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
-    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
-    # print( [x,y,z])
+
     """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
     transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
                                             always_xy=True)
