@@ -4,10 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 
-import geoRoutines.Routine as RT
+import geoRoutines.Remove_from_PublicRelease.Routine as RT
 import geoRoutines.Plotting.Plotting_Routine as RT_Plot
-import geoRoutines.Filter.Filtering_Routine as RT_Filter
-import geoRoutines.FilesCommandRoutine as FileRT
 
 
 ##### Xarray #####

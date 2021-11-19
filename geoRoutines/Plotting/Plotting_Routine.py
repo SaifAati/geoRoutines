@@ -9,11 +9,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm
 from pathlib import Path
 
-import geoRoutines.Routine as RT
+import geoRoutines.Remove_from_PublicRelease.Routine as RT
 from geoRoutines.georoutines import GetWindow
 import geoRoutines.FilesCommandRoutine as FileRT
 import geoRoutines.georoutines as geoRT
-from geoRoutines.Routine import Distribution
+from geoRoutines.Remove_from_PublicRelease.Routine import Distribution
 
 
 def BackGroundImg(backGroundImg):

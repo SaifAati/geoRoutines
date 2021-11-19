@@ -127,11 +127,20 @@ class RasterInfo:
         return imageAsArray
 
     def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
-        "https://gdal.org/python/osgeo.gdal-pysrc.html#Band.ReadAsArray"
+        """
+        Reading a chunk of a GDAL band into a numpy array.
+        :param xOffsetMin:
+        :param xOffsetMax:
+        :param yOffsetMin:
+        :param yOffsetMax:
+        :param bandNumber:
+        :return:
+        ref : "https://gdal.org/python/osgeo.gdal-pysrc.html#Band.ReadAsArray"
+        """
         raster = self.raster
-        # Transform image to array
         xSize = (xOffsetMax - xOffsetMin) + 1
         ySize = (yOffsetMax - yOffsetMin) + 1
+        # print("--->",int(xOffsetMin), int(yOffsetMin), int(xSize), int(ySize))
         imageAsArray = np.array(
             raster.GetRasterBand(bandNumber).ReadAsArray(int(xOffsetMin), int(yOffsetMin), int(xSize), int(ySize)))
         return imageAsArray

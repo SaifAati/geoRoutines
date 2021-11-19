@@ -1,6 +1,5 @@
 import os
 import warnings
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,7 +7,7 @@ from scipy.ndimage import gaussian_filter
 from scipy.stats import norm
 from scipy import ndimage
 import geoRoutines.FilesCommandRoutine as FileRT
-import geoRoutines.Routine as RT
+import geoRoutines.Remove_from_PublicRelease.Routine as RT
 import geoRoutines.Plotting.Plotting_Routine as Plot
 import gdal
 from pathlib import Path
