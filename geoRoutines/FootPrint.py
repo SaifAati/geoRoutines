@@ -4,32 +4,22 @@ import os
 import geojson
 import numpy as np
 
-import geoRoutines.Temp.RoutineWarnings as RW
 from osgeo import gdal, ogr
 from pathlib import Path
-
-"""
-# Say you have an 8-bit image with a NoData value of 0,
-#  use gdal_translate to stretch values [1,255] to [1,1], 
-and assign 0 to represent the NoData value on output,
-#  save result as VRT rather than writing a new raster to disk.
-gdal_translate -scale 1 255 1 1 -ot Byte -of vrt -a_nodata 0 input_ortho.tif input_ortho_mask.vrt
-
-# Create a polygon shapefile that outlines the valid (DN==1) regions of the VRT just created
-gdal_polygonize.py -8 input_ortho_mask.vrt -f "ESRI Shapefile" mask_footprint.shp mask_footprint DN
-"""
 
 
 def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=None):
     """
 
-    :param rasterPath:
-    :param z:
-    :param demPath:
-    :param verbose:
-    :param writeFp:
-    :param savingPath:
-    :return:
+    Args:
+        rasterPath:
+        z:
+        demPath:
+        writeFp:
+        savingPath:
+
+    Returns:
+
     """
     import geoRoutines.georoutines as geoRT
     print("-------", rasterPath)
@@ -60,10 +50,12 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
 
 
     elif rasterInfo.rpcs:
-        print("--- Raster not gorefrenced foot-print will be calculated from RPC if exist ")
+        print("--- No geoTransform in input Raster, footprint will be calculated from RFM if exist ")
 
         try:
-            import RFM.cRFM as RFM
+
+            # import RFM.cRFM as RFM
+            import geoCosiCorr3D.geoRFM.cRFM as RFM
 
         except:
             print("Error ! Cant import RFM ")
@@ -71,22 +63,24 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
         rpc = RFM.cRFMModel(RFMFile=rasterPath)
         if z is None:
             if demPath:
-                from geospatialroutine.Temp.TP2GCPs import GroundCoord2Alt
-                z = GroundCoord2Alt(demPath=demPath, lon=rpc.lonOff, lat=rpc.latOff, interpType=2)
-
+                # from geospatialroutine.Temp.TP2GCPs import GroundCoord2Alt
+                # z = GroundCoord2Alt(demPath=demPath, lon=rpc.lonOff, lat=rpc.latOff, interpType=2)
+                ## TODO
+                raise ValueError("Not Implemented")
             elif z == None:
                 import warnings
-                warnings.warn("no DEM available data, RPC altOff will be used",
-                              category=RW.NoDEMWarning)
+                warnings.warn("No DEM available data, RPC altOff will be used")
                 z = rpc.altOff
                 print("z=", z)
 
-        lons, lats = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0], lin=[0, h, h, 0, 0], alt=[z, z, z, z, z],
+        lons, lats = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0],
+                                        lin=[0, h, h, 0, 0],
+                                        alt=[z, z, z, z, z],
                                         normalized=False)
         # print(lons, lats)
 
     else:
-        raise RW.NotGeoreferencedError
+        raise ValueError("No geoTransfrom and RPCs in input raster ")
 
     crs__ = {
         "type": "name",
@@ -134,16 +128,6 @@ def VectorDrivers(driver):
         return ".kml"
     if driver == "ESRI Shapefile":
         return ".shp"
-
-
-def ExtractSubfiles(inputdirectory, fileExtension=[".NTF"]):
-    filesList = []
-    for root, dirs, files in os.walk(inputdirectory):
-        for name in files:
-            if any(name.endswith(ele) for ele in fileExtension):
-                file = os.path.join(root, name)
-                filesList.append(file)
-    return filesList
 
 
 def FootprintExtract(rasterPath, fpOutput, driver="GeoJSON"):
@@ -236,6 +220,28 @@ def fp_area(geometry):
     # print(area)
     return area
 
+
+def ExtractSubfiles(inputdirectory, fileExtension=[".NTF"]):
+    filesList = []
+    for root, dirs, files in os.walk(inputdirectory):
+        for name in files:
+            if any(name.endswith(ele) for ele in fileExtension):
+                file = os.path.join(root, name)
+                filesList.append(file)
+    return filesList
+
+
+################################### Notes: #############################################################################
+"""
+# Say you have an 8-bit image with a NoData value of 0,
+#  use gdal_translate to stretch values [1,255] to [1,1], 
+and assign 0 to represent the NoData value on output,
+#  save result as VRT rather than writing a new raster to disk.
+gdal_translate -scale 1 255 1 1 -ot Byte -of vrt -a_nodata 0 input_ortho.tif input_ortho_mask.vrt
+
+# Create a polygon shapefile that outlines the valid (DN==1) regions of the VRT just created
+gdal_polygonize.py -8 input_ortho_mask.vrt -f "ESRI Shapefile" mask_footprint.shp mask_footprint DN
+"""
 
 if __name__ == '__main__':
     path = "G:\SkySatData\Ridgecrest\s104_20200620T182032Z\\basic_analytic"
