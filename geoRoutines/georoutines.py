@@ -3,13 +3,13 @@ import sys
 import warnings
 
 import numpy as np
-
-from scipy.stats import norm
-from scipy import stats
-
+import pyproj
 import gdal, gdalconst
 import ogr, osr
 import rasterio
+
+from scipy.stats import norm
+from scipy import stats
 from rasterio.merge import merge
 from pathlib import Path
 
@@ -115,6 +115,7 @@ class RasterInfo:
             print(repr(RasterInfo(self.rasterPath)))
 
     def ImageAsArray(self, bandNumber=1):
+
         """
         :param imagePath:
         :param bandNumber:
@@ -304,9 +305,26 @@ def WriteRaster(oRasterPath,
                 progress=False,
                 driver='GTiff'):
     """
-    https://gdal.org/python/osgeo.gdalconst-module.html
-    geoTransfrom its an affine transfromation
-    geoTransform = originX, pixelWidth, rtx, originY,rty, pixelHeight
+
+    Args:
+        oRasterPath:
+        geoTransform:
+        arrayList:
+        epsg:
+        dtype:
+        metaData:
+        resample_alg:
+        descriptions:
+        noData:
+        progress:
+        driver:
+
+    Returns:
+    Notes:
+
+        https://gdal.org/python/osgeo.gdalconst-module.html
+        geoTransfrom its an affine transfromation
+        geoTransform = originX, pixelWidth, rtx, originY,rty, pixelHeight
     """
     driver = gdal.GetDriverByName(driver)
     rows, cols = np.shape(arrayList[0])
@@ -401,9 +419,13 @@ def DataMemory(dataType):
 def ParseResampMethod(method):
     """
     Parse resampling method
-    :param method:
-    :return:
+    Args:
+        method:
+
+    Returns:
+
     """
+
     if method == 'near':
         # Note: Nearest respects nodata when downsampling
         return gdal.GRA_NearestNeighbour
@@ -434,21 +456,21 @@ def ComputeEpsg(lon, lat):
     the point with given longitude and latitude
 
     Args:
-        lon (float): longitude of the point
-        lat (float): latitude of the point
+        lon : longitude
+        lat : latitude
 
     Returns:
-        int: EPSG code
-    """
-    # UTM zone number starts from 1 at longitude -180,
-    # and increments by 1 every 6 degrees of longitude
-    zone = int((lon + 180) // 6 + 1)
+        EPSG code
+    Notes:
+        UTM zone number starts from 1 at longitude -180, and increments by 1 every 6 degrees of longitude
 
-    # EPSG = CONST + ZONE where CONST is
-    # - 32600 for positive latitudes
-    # - 32700 for negative latitudes
+        EPSG = CONST + ZONE where CONST is
+        - 32600 for positive latitudes
+        - 32700 for negative latitudes
+    """
+
+    zone = int((lon + 180) // 6 + 1)
     const = 32600 if lat > 0 else 32700
-    # print("const=",const,"  zone=",zone)
     return const + zone
 
 
@@ -493,10 +515,15 @@ def CreateProj(epsgCode=4326):
 def Create_MultiBandsRaster_form_MultiRasters(rastersList, outputPath, bandNumber=1):
     """
 
-    :param rastersFolder:
-    :param outputPath:
-    :return:
+    Args:
+        rastersList:
+        outputPath:
+        bandNumber:
+
+    Returns:
+
     """
+
     arrayList = []
     bandDescription = []
     for img_ in rastersList:
@@ -510,14 +537,19 @@ def Create_MultiBandsRaster_form_MultiRasters(rastersList, outputPath, bandNumbe
     #             numberOfBands=len(rastersList), descriptions=bandDescription)
     return outputPath
 
-
+#FIXME
 def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
     """
 
-    :param inputRaster:
-    :param output:
-    :return:
+    Args:
+        inputRaster:
+        output:
+
+    Returns:
+
     """
+
+
     # rasterInfo = GetRasterInfo(inputRaster)
     rasterInfo = RasterInfo(img_)
     print(rasterInfo["NbBands"])
@@ -528,13 +560,24 @@ def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
         WriteRaster(oRasterPath=os.path.join(output, "Img_Band_" + str(i + 1) + ".tif"),
                     geoTransform=rasterInfo.geoTrans, arrayList=[array],
                     epsg=rasterInfo.EPSG_Code)
-        # WriteRaster(refRasterPath=inputRaster, newRasterPath=os.path.join(output, "Img_Band_" + str(i + 1) + ".tif"),
-        #             Listarrays=[array], numberOfBands=1)
+
     return
 
 
 # =====================================================================================================================#
 def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputType=gdal.GDT_Float32):
+    """
+
+    Args:
+        rasterList:
+        areaCoord:
+        outputFolder:
+        vrt:
+        outputType:
+
+    Returns:
+
+    """
     path = os.path.dirname(rasterList[0])
     oList = []
     for img_ in rasterList:
@@ -561,12 +604,18 @@ def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputTyp
 
 def GetOverlapAreaOfRasters(rasterPathList):
     """
-    Return the intersection area between a list of rasters
-    :param rasterPathList: list of the raster paths
-    :return: 0 if no intersection
-             geojson format of the intersection are, and write on the same directory of the images a temp.geojson
-             that contain the intersection are footprint
+    the intersection area between Rasters
+    Args:
+        rasterPathList:
+
+    Returns:
+        0 if no intersection
+        geojson format of the intersection is writen on the same directory of the images
+        a temp.geojson that contain the intersection are footprint
+
+
     """
+
     path = os.path.dirname(rasterPathList[0])
     fpPathList = []
     fpTempFolder = fileRT.CreateDirectory(path, "Temp_SA_FP", cal="y")
@@ -574,15 +623,7 @@ def GetOverlapAreaOfRasters(rasterPathList):
         extent, fpPath = fpRT.RasterFootprint(rasterPath=img_, writeFp=True,
                                               savingPath=os.path.join(fpTempFolder, Path(img_).stem))
         fpPathList.append(fpPath)
-    # #=============================#
-    # from itertools import combinations
-    # res = list(combinations(fpPathList, 2))
-    # for pair in res:
-    #     print(Path(pair[0]).stem,"||",Path(pair[1]).stem)
-    #     interObj = lyrRT.Intersection(fp1=pair[0], fp2=pair[1], dispaly=True)
-    #     
 
-    # print("fpPath:", fpPathList)
 
     overlayTemp = lyrRT.Intersection(fp1=fpPathList[2], fp2=fpPathList[1], dispaly=False)
     print(overlayTemp.res_inter)
@@ -622,6 +663,16 @@ def GetOverlapAreaOfRasters(rasterPathList):
 
 
 def CropBatch(rasterList, outputFolder, vrt=False):
+    """
+
+    Args:
+        rasterList:
+        outputFolder:
+        vrt:
+
+    Returns:
+
+    """
     imgList = rasterList
     coord = GetOverlapAreaOfRasters(rasterPathList=imgList)
 
@@ -651,17 +702,23 @@ def CropBatch(rasterList, outputFolder, vrt=False):
 # =====================================================================================================================#
 def ConvCoordMap1ToMap2(x, y, targetEPSG, z=None, sourceEPSG=4326, display=False):
     """
-    :Method: convert point coordinates from source to target system
-    :param point x,y : map coordinate (e.g lon,lat)
-    :param sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
-    :param targetEPSG: target coordinate system of the point; integer
-    :return: point in target coordinate system; list =[xCoord,yCoord,zCoord]
+    convert point coordinates from source to target system
+    Args:
+        x:  map coordinate (e.g lon,lat)
+        y:
+        targetEPSG: target coordinate system of the point; integer
+        z:
+        sourceEPSG:  source coordinate system of the point; integer (default geographic coordinate )
+        display:
 
-    Note: if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+    Returns:
+        point in target coordinate system; list =[xCoord,yCoord,zCoord]
+    Notes:
+        - If the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+
     """
 
     ## Set the source system
-
     source = osr.SpatialReference()  # instance from SpatialReference Class
     source.ImportFromEPSG(int(sourceEPSG))  # create a projection system based on EPSG code
 
@@ -683,6 +740,15 @@ def ConvCoordMap1ToMap2(x, y, targetEPSG, z=None, sourceEPSG=4326, display=False
 
 
 def ConvertRaster2WGS84(inputPath, outputPath=None):
+    """
+
+    Args:
+        inputPath:
+        outputPath:
+
+    Returns:
+
+    """
     if outputPath == None:
         outputPath = Path(inputPath).stem + "_conv_4326.tif"
 
@@ -692,19 +758,20 @@ def ConvertRaster2WGS84(inputPath, outputPath=None):
 
 def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
     """
-    :Method: convert point coordinates from source to target system
-    :param point x,y : map coordinate (e.g lon,lat)
-    :param sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
-    :param targetEPSG: target coordinate system of the point; integer
-    :return: point in target coordinate system; list =[xCoord,yCoord,zCoord]
+    convert point coordinates from source to target system
+    Args:
+        X ,Y:  map coordinate (e.g lon,lat)
+         Z:
+        targetEPSG: target coordinate system of the point; integer
+        sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
 
-    Note: if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
-    Note: if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
+    Returns:
+        point in target coordinate system; list =[xCoord,yCoord,zCoord]
+    Notes:
+         - if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+         - if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
     """
 
-    ## Set the source system
-    # print(Z)
-    import pyproj
 
     sourceEPSG_string = "epsg:" + str(sourceEPSG)
     targetEPSG_string = "epsg:" + str(targetEPSG)
@@ -747,13 +814,14 @@ def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
         Alt:
 
     Returns:
-
+    Notes:
+        https://pyproj4.github.io/pyproj/dev/api/proj.html
     """
-    # TODO: the conversion is perfromed using pyproj. House implementation could be used
-    ## (see IDL verion: convert_geographic_to_cartesian)
-    import pyproj
+    # TODO: the conversion is performed using pyproj. House implementation could be used.
+    ## (see IDL version: convert_geographic_to_cartesian)
 
-    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+
+
     transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
                                             always_xy=True)
     Xpj, Ypj, Zpj = transproj.transform(Lon, Lat, Alt, radians=False)
@@ -761,15 +829,25 @@ def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
 
 
 def ConvertCartesian2Geo(x, y, z):
-    import pyproj
-    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
+    """
+
+    Args:
+        x:
+        y:
+        z:
+
+    Returns:
+    Notes:
+        # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
     # # print(ecef)
     # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
     # # print(lla)
     # # transformer = pyproj.Transformer.from_crs(lla, ecef)
     # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
     # print( [x,y,z])
-    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+    https://pyproj4.github.io/pyproj/dev/api/proj.html
+    """
+
     transproj = pyproj.Transformer.from_crs({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'}, "EPSG:4326",
                                             always_xy=True)
     lon, lat, alt = transproj.transform(x, y, z, radians=False)
@@ -777,15 +855,7 @@ def ConvertCartesian2Geo(x, y, z):
 
 
 def ConvertCartesian2Geo_Batch(X, Y, Z):
-    import pyproj
-    # ecef = pyproj.Proj(proj='geocent', ellps='WGS84', datum='WGS84')
-    # # print(ecef)
-    # lla = pyproj.Proj(proj='latlong', ellps='WGS84', datum='WGS84')
-    # # print(lla)
-    # # transformer = pyproj.Transformer.from_crs(lla, ecef)
-    # x, y, z = pyproj.transform(lla, ecef, lon, lat, alt, radians=False)
-    # print( [x,y,z])
-    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
+
     transproj = pyproj.Transformer.from_crs({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'}, "EPSG:4326",
                                             always_xy=True)
     Lon, Lat, Alt = transproj.transform(X, Y, Z, radians=False)
@@ -796,9 +866,14 @@ def ConvertCartesian2Geo_Batch(X, Y, Z):
 def BoundingBox2D(pts):
     """
     Rectangular bounding box for a list of 2D points.
-    :param pts: list of 2D points represented as 2-tuples or lists of length 2 : list
-    :return:   [x, y, w, h]: coordinates of the top-left corner, width and height of the bounding box : list
+    Args:
+        pts:  list of 2D points represented as 2-tuples or lists of length 2 : list
+
+    Returns:
+        [x, y, w, h]: coordinates of the top-left corner, width and height of the bounding box : list
+
     """
+
 
     dim = len(pts[0])  # should be 2
     bb_min = [min([t[i] for t in pts]) for i in range(dim)]
