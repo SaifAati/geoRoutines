@@ -3,10 +3,11 @@ from osgeo import gdal, osr
 import sys, os, warnings
 from matplotlib import pyplot as plt
 
-import geospatialroutine.FilesCommandRoutine as FileRT
-import geospatialroutine.Routine as RT
+import geoRoutines.FilesCommandRoutine as FileRT
+import geoRoutines.georoutines as geoRT
 
 from pathlib import Path
+
 
 class Filtering:
     def __init__(self):
@@ -374,17 +375,17 @@ class Filtering:
         :return:
         """
         imgs = FileRT.FilesInDirectory(inputData)
-        bandNb = RT.GetRasterInfo(inputRaster=os.path.join(inputData , imgs[0]))["NbBands"]
+        bandNb = geoRT.RasterInfo(inputRaster=os.path.join(inputData, imgs[0])).nbBand
         print(bandNb)
         if bandNb == 2:
             # for img_ in imgs :
             for im in range(len(imgs)):
                 img_ = imgs[im]
                 print("\n", img_)
-                rasterInfo = RT.GetRasterInfo(inputRaster=os.path.join(inputData, img_))
+                rasterInfo = geoRT.RasterInfo(inputRaster=os.path.join(inputData, img_))
 
-                velocityMapArray = RT.ImageAsArray(rasterInfo, bandNumber=1)
-                snrMapArray = RT.ImageAsArray(rasterInfo, bandNumber=2)
+                velocityMapArray = rasterInfo.ImageAsArray(bandNumber=1)
+                snrMapArray = rasterInfo.ImageAsArray(bandNumber=2)
 
                 # velocityMapFinal = WeightedMeanFilterV3(velocityMapArray=velocityMapArray, snrMapArray=snrMapArray,
                 #                                       thresholdVelocity=thresholdVelovity, thresholdMedian=thresholdMedian, step=step)
@@ -407,14 +408,14 @@ class Filtering:
 
                 if withSNR == False:
 
-                    RT.WriteRaster(refRasterPath=os.path.join(inputData, img_),
-                                   newRasterPath=os.path.join(outputData, img_),
-                                   Listarrays=[velocityMapFinal], numberOfBands=1, metaData=metaData)
+                    geoRT.WriteRaster(refRasterPath=os.path.join(inputData, img_),
+                                      newRasterPath=os.path.join(outputData, img_),
+                                      Listarrays=[velocityMapFinal], numberOfBands=1, metaData=metaData)
                 else:
-                    RT.WriteRaster(refRasterPath=os.path.join(inputData, img_),
-                                   newRasterPath=os.path.join(outputData, img_),
-                                   Listarrays=[velocityMapFinal, snrMapArray], numberOfBands=2,
-                                   descriptions=["Multiscale Filtered Map", "SNR"], metaData=metaData)
+                    geoRT.WriteRaster(refRasterPath=os.path.join(inputData, img_),
+                                      newRasterPath=os.path.join(outputData, img_),
+                                      Listarrays=[velocityMapFinal, snrMapArray], numberOfBands=2,
+                                      descriptions=["Multiscale Filtered Map", "SNR"], metaData=metaData)
 
                 # break  # to be removed
             return
@@ -422,8 +423,8 @@ class Filtering:
             print("Raster don't have SNR band")
             return
 
-    def MultiScaleFilterWithSNR_(self, inputData, outputFolder,snrData, thresholdVelovity, thresholdMedian, step,
-                                multiScaleFactor=2, withSNR=False):
+    def MultiScaleFilterWithSNR_(self, inputData, outputFolder, snrData, thresholdVelovity, thresholdMedian, step,
+                                 multiScaleFactor=2, withSNR=False):
         """
 
         :param inputData:
@@ -436,16 +437,14 @@ class Filtering:
         :return:
         """
 
-
         # for img_ in imgs :
-        for img_,snr_ in zip(inputData,snrData):
+        for img_, snr_ in zip(inputData, snrData):
             # img_ = imgs[im]
             print("\n", img_)
-            rasterInfo = RT.GetRasterInfo(inputRaster=img_)
+            rasterInfo = geoRT.RasterInfo(inputRaster=img_)
 
-            velocityMapArray = RT.ImageAsArray(rasterInfo, bandNumber=1)
-            snrMapArray = RT.ImageAsArray(RT.GetRasterInfo(snr_), bandNumber=1)
-
+            velocityMapArray = rasterInfo.ImageAsArray(bandNumber=1)
+            snrMapArray = geoRT.RasterInfo(snr_).ImageAsArray(bandNumber=1)
 
             velocityMapFinal = self.WeightedMeanFilterV4(velocityMapArray=velocityMapArray, snrMapArray=snrMapArray,
                                                          thresholdVelocity=thresholdVelovity,
@@ -461,17 +460,14 @@ class Filtering:
 
             if withSNR == False:
 
-                RT.WriteRaster(refRasterPath=img_,
-                               newRasterPath=os.path.join(outputFolder, Path(img_).stem+"_filtered.tif"),
-                               Listarrays=[velocityMapFinal], numberOfBands=1, metaData=metaData)
+                geoRT.WriteRaster(refRasterPath=img_,
+                                  newRasterPath=os.path.join(outputFolder, Path(img_).stem + "_filtered.tif"),
+                                  Listarrays=[velocityMapFinal], numberOfBands=1, metaData=metaData)
             else:
-                RT.WriteRaster(refRasterPath=img_,
-                               newRasterPath=os.path.join(outputFolder, Path(img_).stem+"_filtered.tif"),
-                               Listarrays=[velocityMapFinal, snrMapArray], numberOfBands=2,
-                               descriptions=["Multiscale Filtered Map", "SNR"], metaData=metaData)
+                geoRT.WriteRaster(refRasterPath=img_,
+                                  newRasterPath=os.path.join(outputFolder, Path(img_).stem + "_filtered.tif"),
+                                  Listarrays=[velocityMapFinal, snrMapArray], numberOfBands=2,
+                                  descriptions=["Multiscale Filtered Map", "SNR"], metaData=metaData)
 
             # break  # to be removed
         return
-
-
-
