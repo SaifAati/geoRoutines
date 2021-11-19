@@ -38,43 +38,6 @@ def BackGroundImg(backGroundImg):
             return imgFinal
 
 
-def Info_4_Plotting(path, option):
-    """
-
-    """
-    ## Open the folder of data to be displayed
-    files = FileRT.FilesInDirectory(path)
-    files.sort()
-    fileList = []  # list of raster to be displayed
-    dateList = []  # list of date
-    satType = []  # list of satellite type
-    pathrowList = []
-    diffDays = []
-    # Fetching Date and satellite type
-    for file_ in files:
-        if ".tif" in file_ and ".xml" not in file_ and ".enp" not in file_:
-            fileList.append(file_)
-            if option == 1:
-                vInfo = CorrMis.VelocityFileInfo(velocityFileName=file_, option=option)
-                dateList.append(vInfo["Master"]["Date"] + "#" + vInfo["Slave"]["Date"])
-                satType.append(vInfo["Master"]["Satellite"])
-                diffDays.append(vInfo["TimeSpan"])
-
-            elif option == 2:
-                vInfo = CorrMis.VelocityFileInfo(velocityFileName=file_, option=option)
-                dateList.append(vInfo["Slave"]["Date"])
-                satType.append(vInfo["Slave"]["Satellite"])
-            elif option == 3:
-                vInfo = CorrMis.VelocityFileInfo(velocityFileName=os.path.join(path, file_), option=option)
-            elif option == 4:
-                metaData = CorrMis.VelocityFileInfo(velocityFileName=os.path.join(path, file_), option=option)
-                dateList.append(metaData["SlaveDate"])
-                satType.append(metaData["SlavePlatform"])
-                diffDays.append(metaData["TimeSpan"])
-
-    return fileList, dateList, satType, diffDays
-
-
 def ColorBar(ax, mapobj, width="3%", height="50%", label="Disp.[m]", ticks=None, size=16):
     """
     'upper right': 1,
@@ -226,126 +189,6 @@ def Plot_Raster(imgArray1, figureTitle="", initAnimation=False):
     if initAnimation:
         ax1.axis("off")
         return im1, fig
-
-
-def SavePlots(inputFolder, backgroundImg, savingPath, saveFig=False, vMin=0, vMax=3.5, transparency=True):
-    ### Open the folder of data to be displayed
-    fileList, dateList, satType, difDays = Info_4_Plotting(path=inputFolder, option=4)
-    print("Number of images", len(fileList))
-
-    for index, file_ in enumerate(fileList):
-        #########
-        fig = plt.figure()
-        gs = gridspec.GridSpec(1, 1)
-        widths = [1]
-        heights = [1, 2]
-        spec = fig.add_gridspec(nrows=1, ncols=1)
-        ax1 = fig.add_subplot(spec[0, 0])
-        ### Create a grid
-        backgroundImgArray = BackGroundImg(backGroundImg=backgroundImg)
-        ax1.imshow(backgroundImgArray)
-
-        # my_cmap = plt.get_cmap('rainbow')
-        # my_cmap = plt.get_cmap('RdYlBu')
-        my_cmap = plt.get_cmap('gist_earth')
-        # my_cmap = plt.get_cmap('terrain')
-        # my_cmap = plt.get_cmap('jet')
-        # my_cmap = plt.get_cmap('seismic')
-        # my_cmap = plt.get_cmap('BrBG')
-        # my_cmap = plt.get_cmap('cubehelix')
-        ims = []
-        imageAsArray = RT.ImageAsArray(RT.GetRasterInfo(inputRaster=inputFolder + file_))
-        if transparency:
-            # imageAsArray = np.ma.masked_inside(imageAsArray, 0.00001, -0.00001)
-            import Filtering_Routine
-            imageAsArray = Filtering_Routine.MaskZeros(inputArray=imageAsArray)
-
-        im = ax1.imshow(imageAsArray, cmap=my_cmap, vmin=vMin, vmax=vMax, origin="upper")
-
-        txtTitle = dateList[index] + " (" + satType[index] + ")" + " Time Span:" + str(difDays[index]) + " ID:" + str(
-            index + 1)
-        txt = ax1.text(0, -15, txtTitle, color="red", bbox=dict(facecolor='white', alpha=0.8))
-        ax1.axis("off")
-        ColorBar(ax=ax1, imageArray=im)
-        if saveFig:
-            if saveFig:
-                plt.savefig(savingPath + txtTitle + ".png", dpi=600)
-                print("Saving Fig number: ", index + 1)
-        # plt.show()
-
-    return
-
-
-def SaveImgsOnGrids(inputFolder, savingFolder, gridCouple, backgroundImg, vMin=0, vMax=3.5, transparency=True,
-                    titleType=1):
-    ### Open the folder of data to be displayed
-    fileList, dateList, satType, difDays = Info_4_Plotting(path=inputFolder, option=4)
-    print("Number of images", len(fileList))
-    nbImgPerGrid = gridCouple[0] * gridCouple[1]
-    nbGrids = np.floor_divide(len(fileList), nbImgPerGrid)
-    restImgs = len(fileList) - nbGrids * nbImgPerGrid
-    print(nbGrids)
-    print(restImgs)
-    id = 0
-    for gridNb in range(nbGrids):
-        print("Grid number:", gridNb)
-        gridImgsList = fileList[gridNb * nbImgPerGrid:gridNb * nbImgPerGrid + nbImgPerGrid]
-        gridDateList = dateList[gridNb * nbImgPerGrid:gridNb * nbImgPerGrid + nbImgPerGrid]
-        gridSatTypeList = satType[gridNb * nbImgPerGrid:gridNb * nbImgPerGrid + nbImgPerGrid]
-        gridDifDaysList = difDays[gridNb * nbImgPerGrid:gridNb * nbImgPerGrid + nbImgPerGrid]
-        #########
-        fig = plt.figure()
-        gs = gridspec.GridSpec(gridCouple[0], gridCouple[1])
-        spec = fig.add_gridspec(nrows=gridCouple[0], ncols=gridCouple[1])
-        widths = [1]
-        index = 0
-        for row in range(gridCouple[0]):
-            for col in range(gridCouple[1]):
-                id += 1
-                ax1 = fig.add_subplot(spec[row, col])
-                ### Create a grid
-                backgroundImgArray = BackGroundImg(backGroundImg=backgroundImg)
-                ax1.imshow(backgroundImgArray)
-                imageAsArray = RT.ImageAsArray(RT.GetRasterInfo(inputRaster=inputFolder + gridImgsList[index]))
-                # # my_cmap = plt.get_cmap('rainbow')
-                # # my_cmap = plt.get_cmap('RdYlBu')
-                my_cmap = plt.get_cmap('gist_earth')
-                # # my_cmap = plt.get_cmap('terrain')
-                # # my_cmap = plt.get_cmap('jet')
-                # # my_cmap = plt.get_cmap('seismic')
-                # # my_cmap = plt.get_cmap('BrBG')
-                # # my_cmap = plt.get_cmap('cubehelix')
-                # ims = []
-                if transparency:
-                    # imageAsArray = np.ma.masked_inside(imageAsArray, 0.00001, -0.00001)
-                    import Filtering_Routine
-                    imageAsArray = Filtering_Routine.MaskZeros(inputArray=imageAsArray)
-                im = ax1.imshow(imageAsArray, cmap=my_cmap, vmin=vMin, vmax=vMax, origin="upper")
-                if titleType == 1:
-                    txtTitle = gridDateList[index] + " (" + gridSatTypeList[index] + ")" + " Time Span:" + str(
-                        gridDifDaysList[index]) + " ID:" + str(id)
-                    txt = ax1.text(0, -15, txtTitle, color="red", bbox=dict(facecolor='white', alpha=0.8))
-                if titleType == 2:
-                    txtTitle = gridDateList[index]
-                    ax1.set_title(txtTitle, size=12, fontweight='roman')
-                    # txt = ax1.text(0, -15, txtTitle, color="red", bbox=dict(facecolor='white', alpha=0.8))
-
-                ax1.axis("off")
-                index += 1
-                # ColorBar(ax=ax1, imageArray=im)
-                # if saveFig:
-                #     if saveFig:
-                #         plt.savefig(savingPath + txtTitle + ".png", dpi=600)
-                #         print("Saving Fig number: ", index + 1)
-        fig.subplots_adjust(right=0.87)
-        cbar_ax = fig.add_axes([0.9, 0.3, 0.01, 0.33])  # [x_pos,y_pos,width(0.01 =1%),hieght )]
-        cbar = plt.colorbar(im, cax=cbar_ax)
-        # cbar = plt.colorbar(im)  # , ax=axes.ravel().tolist()
-        cbar.set_label(label=' Velocity (m/day)', size=12)
-        cbar.ax.tick_params(labelsize=10)
-        plt.show()
-
-    return
 
 
 def DispDiplacmentMap(displacmentRasterPath, bandNumber=1, backgroundImg=None, transparency=True, vMin=0, vMax=3,
@@ -1060,7 +903,8 @@ def VisualizeDisplacment(dispPath, vmin=-50, vmax=50, cmap="RdYlBu", title=None,
     return
 
 
-if __name__ == '__main__':
+########################################### Examples ###################################################################
+def Example():
     # # corrPath = "/home/cosi/2-Data/1-Ridgecrest/0-Sentinel2_WorkSpace/2_Correlate_SL_images_With_no_Ground_displacement/S2A_2019-08-02_VS_2019_08_12/Cosi-Corr/PostProcessing/Corr_NLMF_1p5-41-5"
     # # rasterInfo = RT.GetRasterInfo(inputRaster=corrPath)
     # # ewArray = RT.ImageAsArray(imageInfo=rasterInfo, bandNumber=1)
@@ -1150,7 +994,8 @@ if __name__ == '__main__':
     # # PlotDistribution(inputArray=array2,title="diff_Dz_Couple33 and dDSMs",xlim=[-2,2])
     # ################################################# END ############################################################
 
-    path = "/home/cosicorr/0-WorkSpace/PlanetProject/Ridgecrest_PS_Evaluation/PS2_SD_Evaluation/EValuate_with_otherImages"
-    displacemntMap = os.path.join(path, "PS10_03_VS_NAIP_Post_nlmf_detrend")
-    VisulizeDisplacment(dispPath=displacemntMap, vmax=2, vmin=-2, title="NS_PS2SD_2019-10-03_VS_NAIP", bandNumber=2,
-                        saveFig=True)
+    return
+
+
+if __name__ == '__main__':
+    Example()

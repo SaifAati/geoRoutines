@@ -1,20 +1,13 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import rasterio
-import gdal
-from rasterio.plot import show
-from pathlib import Path
-import geospatialroutine.Plotting.Plotting_Routine as PltRT
-from matplotlib.ticker import FormatStrFormatter
-import geospatialroutine.Routine_Lyr as LyrRT
-from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-import geospatialroutine.FilesCommandRoutine as FileRT
-import geospatialroutine.Filter.Filtering_Routine as filterRT
 
-import geospatialroutine.Routine_Lyr as RTLyr
-# import geospatialroutine.Routine as RT
-import geospatialroutine.georoutines as geoRT
+import gdal
+from pathlib import Path
+
+import geoRoutines.FilesCommandRoutine as FileRT
+import geoRoutines.Routine_Lyr as RTLyr
+import geoRoutines.georoutines as geoRT
 
 
 class ExtractProfile:
@@ -320,7 +313,7 @@ def PlotProfilesDZ():
 
     rasterPath = "/home/cosicorr/0-WorkSpace/3D-Correlation_project/7p1_3DDA/PCA_ICA/ENVI/Dz/ICA/Gaussian/ICA_reconst_4_7/ICA/DZ_reconstruct_4_7_ICA_Gaussina_Reconstruct_PC1_2"
     # rasterPath = "//home/cosicorr/0-WorkSpace/3D-Correlation_project/7p1_3DDA/PCA_ICA/ENVI/Dz/allDz.tif"
-    rasterInfo = RT.GetRasterInfo(rasterPath, True)
+    rasterInfo = geoRT.GetRasterInfo(rasterPath, True)
     nbBands = rasterInfo["NbBands"]
     profilObj = []
     labels = []
