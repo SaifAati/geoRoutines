@@ -292,7 +292,7 @@ def Intersection_(fp1, fp2, display=False):
     if display:
 
         fig, ax = plt.subplots()
-        colors = GenerateColors(N=len(fpDF_List), pastel_factor=0.5)
+        colors = randomcolsRT.GenerateColors(N=len(fpDF_List), pastel_factor=0.5)
         if intersection != 0:
             res_inter.plot(ax=ax, alpha=0.5, cmap='tab10')
         fpDF_List[0].plot(ax=ax, facecolor='none', edgecolor=colors[0])
@@ -303,7 +303,7 @@ def Intersection_(fp1, fp2, display=False):
         dfCopy = res_inter.copy()
         coords = intersection['geometry']['coordinates']
         print(coords)
-        epsg = "epsg:" + str(RT.ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1]))
+        epsg = "epsg:" + str(ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1]))
         print(epsg)
         dfCopy = dfCopy.to_crs({'init': epsg})
         inter_area = (dfCopy['geometry'].area / 10 ** 6)[0]
