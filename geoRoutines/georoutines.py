@@ -1,3 +1,5 @@
+# Copyright (C) 2020, SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+
 import os
 import sys
 import warnings

@@ -12,10 +12,6 @@ def GetTime(seconds):
     # print("DAYS:HOURS:MIN:SEC")
     print("%d:%d:%d:%d" % (d.day - 1, d.hour, d.minute, d.second))
 
-
-
-
-
 def tic():
     global _start_time
     _start_time = time.time()
