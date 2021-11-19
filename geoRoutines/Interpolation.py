@@ -6,7 +6,7 @@ from scipy.interpolate import *
 
 import warnings
 
-from p_tqdm import p_map
+
 
 class BicubicInterpolation:
 
@@ -41,7 +41,7 @@ class BicubicInterpolation:
             return 0, True
 
     def Sfunction(self, i, j):
-
+        ##FIXME
         s, verif = RT.GetDataFromRaster(imageInfo=self.imageInfo, windDims=[i, i, j, j], bandNumber=self.bandNumber)
         # data = np.array([[20, 41, 35, 20], [15, 12, 21, 24], [11, 25, 32, 30], [8, 25, 35, 50]])
         # s = data [j,i]
@@ -69,17 +69,21 @@ class BicubicInterpolation:
 
 
 
-def InterpolationMethod(method):
+def InterpolationMethods(method):
     """
-     Function to convert number into string
-    # Switcher is dictionary data type here
-    # get() method of dictionary data type returns
-    # value of passed argument if it is present
-    # in dictionary otherwise second argument will
-    # be assigned as default value of passed argument
-    :param method:
-    :return:
+    Function to convert number into string.
+    Switcher is dictionary data type here
+    get() method of dictionary data type returns
+    value of passed argument if it is present
+    in dictionary otherwise second argument will
+    be assigned as default value of passed argument
+    Args:
+        method:
+
+    Returns:
+
     """
+
     switcher = {
         0: "nearest",
         1: "linear",
@@ -91,12 +95,16 @@ def InterpolationMethod(method):
 
 def Interpolation1d(x, y, mode="quadratic"):
     """
+    1D interpolation using Scipy
+    Args:
+        x:
+        y:
+        mode: linear,nearest,cubic,quadratic,previous,next,slinear
 
-    :param x:
-    :param y:
-    :param mode:
-    :return:
+    Returns:
+
     """
+
     from scipy.interpolate import interp1d
 
     if mode == "linear":
@@ -120,6 +128,7 @@ def Interpolation1d(x, y, mode="quadratic"):
         # # return the next point along the x-axis
         return interp1d(x=x, y=y, kind="next"), mode
     elif mode == "gekko":
+        ##TODO
         print("To add")
         # from gekko import GEKKO
         # m = GEKKO()
@@ -130,110 +139,6 @@ def Interpolation1d(x, y, mode="quadratic"):
         # m.cspline(m.x, m.y, listDatesDays, V_nbPC)
         # m.solve(disp=False)
         # ax2.plot(m.x.value, m.y.value, 'r--', label='cubic spline')
-
-
-def InterpolationCosiCorr(xTemp, yTemp, demInfo, tiePointIndex, interpolationType):
-    """
-    :param xTemp: xTiepoints in demImage space
-    :param yTemp: yTiepoints in demImage space
-    :param demInfo: list of the dem image
-    :param tiePointIndex: Number of the tie point
-    param interpolationType : int
-            : 0= "nearest"    zero order interpolation
-            : 1= "bilinear"
-            : 2= "bicubic"
-            : 3= "spline"   :not yet implemented
-            : Default = "bilinear"
-    :return: altitude : float
-    """
-    ## Define window around this pixel
-    ##:param windowDim: window dimension: array[X1, X2, Y1, Y2]
-    windowDim = [int(xTemp) - 3, int(xTemp) + 3, int(yTemp) - 3, int(yTemp) + 3]
-
-    ## Verify if the window around the tie point is onside the DEM image
-    res, verif = RT.GetDataFromRaster(imageInfo=demInfo, windDims=windowDim, bandNumber=1)
-    if verif == False:
-        # Get the window data in this window
-        windowData = res
-        # print("windowData around TiePts=\n", windowData)
-
-        h = Interpolate(data=windowData, points=(xTemp - (int(xTemp) - 3), yTemp - (int(yTemp) - 3)),
-                        method=interpolationType)
-        print("h=", h, "type  ", InterpolationMethod(interpolationType), '\n')
-        return h
-
-    else:
-        print("Tie Point number ", tiePointIndex + 1, " is outside DEM coverage - Altitude set to 0.0")
-        h = 0
-        return h
-
-
-def InterpolationSA(x, y, demInfo, interpolationType, bandNumber=1):
-    """
-    Interpolation using non-integer pixel position
-    3 methods of interpolation have been implemented:
-        1- zero order interpolation (nearest neighbour)
-        2- first order interpolation (bilinear interpolation)
-        3- second order interpolation (bicubic convolution, Lagrange polynomials)
-    The difference between this implementation and the fo;mer used in cosi-corr or by numpy that we take
-    retrieve the suitable altitude value from the local neighborhoods using non-integer pixel position
-    :param xTemp: xTiepoints in demImage space
-    :param yTemp: yTiepoints in demImage space
-    :param demInfo: list of the dem image
-    :return: altitude : float
-    """
-    print(" ### SA Interpolation non-integer pixel position, method: ", interpolationType)
-
-    if interpolationType == "nearest":
-        #### Zero Order Interpolation  (Nearest)
-        xTemp_ = int(np.rint(x))
-        yTemp_ = int(np.rint(y))
-        point = [xTemp_, xTemp_, yTemp_, yTemp_]
-
-        hNearest, verifNearest = RT.GetDataFromRaster(imageInfo=demInfo, windDims=point, bandNumber=bandNumber)
-
-        if verifNearest == False:
-            print("h_Nearest=", hNearest.item())
-            return hNearest
-        else:
-            warnings.warn("Point number is outside DEM coverage - Altitude set to nan")
-            h = np.nan
-            return h
-
-    if interpolationType == "default" or interpolationType == "linear":
-        #### First Order Interpolation  (bilineare Interpolation)
-        i_ = int(x - 0.5)
-        j_ = int(y - 0.5)
-        dx = (x - 0.5) - i_
-        dy = (y - 0.5) - j_
-
-        g1, verif1 = RT.GetDataFromRaster(imageInfo=demInfo, windDims=[i_, i_, j_, j_], bandNumber=bandNumber)
-        g2, verif2 = RT.GetDataFromRaster(imageInfo=demInfo, windDims=[i_ + 1, i_ + 1, j_, j_], bandNumber=bandNumber)
-        g3, verif3 = RT.GetDataFromRaster(imageInfo=demInfo, windDims=[i_, i_, j_ + 1, j_ + 1], bandNumber=bandNumber)
-        g4, verif4 = RT.GetDataFromRaster(imageInfo=demInfo, windDims=[i_ + 1, i_ + 1, j_ + 1, j_ + 1],
-                                          bandNumber=bandNumber)
-
-        if (verif1 == False and verif2 == False and verif3 == False and verif4 == False):
-            hBilinear = g1 + dx * (g2 - g1) + dy * (g3 - g1) + dx * dy * ((g4 - g2) - (g3 - g1))
-            print("h_Bilinear= ", hBilinear.item())
-            return hBilinear
-        else:
-            warnings.warn("Point number is outside DEM coverage - Altitude set to nan")
-            h = np.nan
-            return (h)
-
-    if interpolationType == "cubic":
-        #### Second Order Interpolation  (Bicubic Interpolation)
-        bic = BicubicInterpolation(rasterInfo=demInfo, x=x, y=y)
-
-        hBicubic, verif = bic.res, bic.validation
-        if verif == False:
-            print("hBicubic= ", hBicubic)
-            return (hBicubic)
-        else:
-            warnings.warn("Point number is outside DEM coverage - Altitude set to nan")
-            h = np.nan
-            return (h)
 
 
 def Interpolate(data, points, method):
@@ -259,13 +164,13 @@ def Interpolate(data, points, method):
 
     coorList = np.asanyarray(coordList)
 
-    if InterpolationMethod(method=method) == "default":
+    if InterpolationMethods(method=method) == "default":
 
         methodType = "linear"
         h = interpolate.griddata(coorList, dataList, points, method=methodType)
     else:
-        if InterpolationMethod(method=method) != "spline":
-            methodType = InterpolationMethod(method=method)
+        if InterpolationMethods(method=method) != "spline":
+            methodType = InterpolationMethods(method=method)
             h = interpolate.griddata(coorList, dataList, points, method=methodType)
             h = h.item()
         else:
@@ -286,19 +191,23 @@ def Interpolate(data, points, method):
 def Interpolate2D(inArray, x, y, kind='cubic'):
     """
     Procedure for 2D interpolation
- 
-    :param inArray:
-    :param x: list
-    :param y: list
-    :param kind: RectBivariateSpline,quintic
-    :return:
+    Args:
+        inArray:
+        x: list
+        y: list
+        kind: RectBivariateSpline,quintic
+
+    Returns:
+    Notes:
+            Add the possibility to perform sinc interpolation :
+                Hints:  https://stackoverflow.com/questions/1851384/resampling-interpolating-matrix
+                        https://www.programcreek.com/python/example/58004/numpy.sinc
+                        https://gist.github.com/gauteh/8dea955ddb1ed009b48e
+                        https://gist.github.com/endolith/1297227
+                        https://www.harrisgeospatial.com/docs/INTERPOLATE.html
     """
-    ## Note: add the possibility to perform sinc interpolation :
-    ## Hints: https://stackoverflow.com/questions/1851384/resampling-interpolating-matrix
-    ## https://www.programcreek.com/python/example/58004/numpy.sinc
-    ## https://gist.github.com/gauteh/8dea955ddb1ed009b48e
-    ## https://gist.github.com/endolith/1297227
-    ## https://www.harrisgeospatial.com/docs/INTERPOLATE.html
+
+
 
     shape = np.shape(inArray)
     lin = shape[0]
@@ -439,30 +348,3 @@ def LinearIterpolation(array, location):
     return res
 
 
-## ================================================================================================================= ##
-
-# def Fast2Dinterp(inArray, X, Y):
-#     from fast_interp import interp2d
-#
-#     # https://github.com/CD3/libInterpolate
-#     # https://github.com/dbstein/fast_interp
-#
-#     shape = np.shape(inArray)
-#     lin = shape[0]
-#     col = shape[1]
-#     f = interp2d([0, 0], [lin, col], [1, 1], inArray)  # , k=5, p=[False, True], e=[1, 0])
-#
-#     def _2Dinterp(f, xVal, yVal):
-#
-#         return f(xVal, yVal).item()
-#
-#     if len(X) > 1 and len(Y) > 1:
-#         res = []
-#         res = p_map(_2Dinterp, len(X) * [f], X, Y, num_cpus=50)
-#         # for x_, y_ in zip(x, y):
-#         #     res.append(f(x_, y_).item())
-#
-#         return res
-#     else:
-#         # print(f(x,y))
-#         return [f(X, Y).item()]
