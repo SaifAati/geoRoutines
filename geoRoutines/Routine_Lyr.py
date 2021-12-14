@@ -131,6 +131,7 @@ def WriteJson(features, outputFile, driver="GeoJSON"):
 class Intersection:
 
     def __init__(self, fp1, fp2, dispaly=False):
+
         self.fpDF_List = []
         self.intersection = 0
         self.fp1_area = 0

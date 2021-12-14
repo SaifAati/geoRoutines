@@ -664,18 +664,20 @@ def GetOverlapAreaOfRasters(rasterPathList):
                                               savingPath=os.path.join(fpTempFolder, Path(img_).stem))
         fpPathList.append(fpPath)
 
-
-    overlayTemp = lyrRT.Intersection(fp1=fpPathList[2], fp2=fpPathList[1], dispaly=False)
-    print(overlayTemp.res_inter)
+    # print("fpPathList:",fpPathList)
+    overlayTemp = lyrRT.Intersection(fp1=fpPathList[1], fp2=fpPathList[0], dispaly=True)
+    # print(overlayTemp.res_inter)
     if overlayTemp.intersection != 0:
-
         tempIntersect = fpRT.WriteJson(features=overlayTemp.res_inter,
                                        outputFile=os.path.join(fpTempFolder, "Temp"))
         intersection = overlayTemp.intersection
+        # print("intersection:", intersection)
+        overlay = overlayTemp
         del overlayTemp
+
         index = 2
         while intersection != 0 and index < len(fpPathList):
-            print("---", Path(fpPathList[index]).stem, "----")
+            # print("---", Path(fpPathList[index]).stem, "----")
             overlay = lyrRT.Intersection(fp2=tempIntersect, fp1=fpPathList[index], dispaly=False)
             intersection = overlay.intersection
 
