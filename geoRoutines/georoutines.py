@@ -1,4 +1,6 @@
-# Copyright (C) 2020, SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
 
 import os
 import sys
@@ -62,6 +64,12 @@ class cgeoStat:
 
 class RasterInfo:
     def __init__(self, inputRaster, printInfo=False):
+        """
+
+        Args:
+            inputRaster: raster path : string
+            printInfo: Display raster information if True
+        """
         self.error = False
         try:
             ## Open the image using GDAL
@@ -117,12 +125,15 @@ class RasterInfo:
             print(repr(RasterInfo(self.rasterPath)))
 
     def ImageAsArray(self, bandNumber=1):
+        """
+
+        Args:
+            bandNumber:
+
+        Returns:
 
         """
-        :param imagePath:
-        :param bandNumber:
-        :return: image as array
-        """
+
         raster = self.raster
         # Transform image to array
         imageAsArray = np.array(raster.GetRasterBand(bandNumber).ReadAsArray())
@@ -131,15 +142,18 @@ class RasterInfo:
 
     def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
         """
-        Reading a chunk of a GDAL band into a numpy array.
-        :param xOffsetMin:
-        :param xOffsetMax:
-        :param yOffsetMin:
-        :param yOffsetMax:
-        :param bandNumber:
-        :return:
-        ref : "https://gdal.org/python/osgeo.gdal-pysrc.html#Band.ReadAsArray"
+
+        Args:
+            xOffsetMin:
+            xOffsetMax:
+            yOffsetMin:
+            yOffsetMax:
+            bandNumber:
+
+        Returns:
+        References: https://gdal.org/python/osgeo.gdal-pysrc.html#Band.ReadAsArray
         """
+
         raster = self.raster
         xSize = (xOffsetMax - xOffsetMin) + 1
         ySize = (yOffsetMax - yOffsetMin) + 1
@@ -149,12 +163,7 @@ class RasterInfo:
         return imageAsArray
 
     def MultiBandsRaster2Array(self):
-        """
-        Improve with Xarray
-        :param imageInfo:
-        :return:
-        """
-
+        # TODO :  Improve with Xarray
         array = np.empty((self.nbBand, self.rasterHeight, self.rasterWidth))
         for i in range(self.nbBand):
             array[i] = self.ImageAsArray(bandNumber=i + 1)
@@ -163,13 +172,17 @@ class RasterInfo:
 
     def Pixel2Map(self, x, y):
         """
-        :Method : convert pixel coordinate to map coordinate,
-        :Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
-        :param imagePath: path of the image  : string
-        :param x: xPixel coordinate : int or float
-        :param y: yPixel coordinate: int or float
-        :return: xMap,yMap : tuple  (non integer coordinates)
+        Convert pixel coordinate to map coordinate,
+        Notes:
+            The top Left coordinate of the image with GDAl correspond to (0,0)pix
+        Args:
+            x: xPixel coordinate : int or float
+            y: yPixel coordinate: int or float
+
+        Returns: xMap,yMap : tuple  (non integer coordinates)
+
         """
+
         rtnX = self.geoTrans[2]
         rtnY = self.geoTrans[4]
         ## Apply affine transformation
@@ -182,13 +195,16 @@ class RasterInfo:
 
     def Pixel2Map_Batch(self, X, Y):
         """
-        :Method : convert pixel coordinate to map coordinate,
-        :Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
-        :param imagePath: path of the image  : string
-        :param X: list of xPixel coordinates : list of int of float
-        :param Y: list of  yPixel coordinates:  list of int or float
-        :return: xMap,yMap : tuple  (non integer coordinates)
+        Convert pixel coordinate to map coordinate,
+        Args:
+            X: list of xPixel coordinates : list of int of float
+            Y: list of  yPixel coordinates:  list of int or float
+
+        Returns:
+             xMap,yMap : tuple  (non integer coordinates)
+
         """
+
         X_map = []
         Y_map = []
         for x, y in zip(X, Y):
@@ -199,13 +215,16 @@ class RasterInfo:
 
     def Map2Pixel(self, x, y):
         """
-        :Method : convert coordinate from map space to image space,
-            Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
-        :param imagePath: path of the image  : string
-        :param x: xMap coordinate : int or float
-        :param y: yMap coordinate: int or float
-        :return: coordinate in image space : tuple in pix
+        Convert coordinate from map space to image space
+        Args:
+            x: xMap coordinate : int or float
+            y: yMap coordinate: int or float
+
+        Returns:
+            coordinate in image space : tuple in pix
+
         """
+
 
         ## Apply inverse affine transformation
         rtnX = self.geoTrans[2]
@@ -228,14 +247,15 @@ class RasterInfo:
 
     def Map2Pixel_Batch(self, X, Y):
         """
-        :Method : convert coordinate from map space to image space,
-            Note: The top Left coordinate of the image with GDAl correspond to (0,0)pix
-        :param imagePath: path of the image  : string
-        :param X: list of xMap coordinate : list of int or float
-        :param Y: list of yMap coordinate: list of int or float
-        :return: coordinate in image space : tuple in pix
-        """
+        Convert coordinate from map space to image space
+        Args:
+            X: list of xMap coordinate : list of int or float
+            Y: list of yMap coordinate: list of int or float
 
+        Returns:
+            coordinate in image space : tuple in pix
+
+        """
         X_pix = []
         Y_pix = []
         for x, y in zip(X, Y):
@@ -295,6 +315,7 @@ class RasterInfo:
 
 
 # =====================================================================================================================#
+
 def WriteRaster(oRasterPath,
                 geoTransform,
                 arrayList,
@@ -325,7 +346,7 @@ def WriteRaster(oRasterPath,
     Notes:
 
         https://gdal.org/python/osgeo.gdalconst-module.html
-        geoTransfrom its an affine transfromation
+        geoTransfrom it's an affine transformation
         geoTransform = originX, pixelWidth, rtx, originY,rty, pixelHeight
     """
     driver = gdal.GetDriverByName(driver)
@@ -477,6 +498,14 @@ def ComputeEpsg(lon, lat):
 
 
 def Set_crs(epsg=4326):
+    """
+
+    Args:
+        epsg:
+
+    Returns:
+
+    """
     outRasterSRS = osr.SpatialReference()
     outRasterSRS.ImportFromEPSG(epsg)
     print("-----", outRasterSRS)
@@ -485,6 +514,15 @@ def Set_crs(epsg=4326):
 
 
 def GetWindow(iRasterPath, windowGeo):
+    """
+
+    Args:
+        iRasterPath:
+        windowGeo:
+
+    Returns:
+
+    """
     # ShisperWindow = 74.467995439,74.653396304,36.302775965,36.485637092 [EPSG:4326]
     rasterInfo = RasterInfo(inputRaster=iRasterPath)
     topLeft = rasterInfo.Map2Pixel(windowGeo[0], windowGeo[-1])
@@ -500,7 +538,7 @@ def GetWindow(iRasterPath, windowGeo):
 
 
 def ProjDatumIdentical(proj1, proj2):
-    print("Check if bothe projection are identical")
+    print("Check if both projection are identical")
     print("---- Working progress ----")
     print("--- Error! Sorry!---")
     return False

@@ -1,3 +1,7 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
+
 import os, gdal
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
@@ -9,12 +13,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm
 from pathlib import Path
 
-import geoRoutines.Remove_from_PublicRelease.Routine as RT
+
 from geoRoutines.georoutines import GetWindow
 import geoRoutines.FilesCommandRoutine as FileRT
 import geoRoutines.georoutines as geoRT
-from geoRoutines.Remove_from_PublicRelease.Routine import Distribution
-
+# from geoRoutines.Remove_from_PublicRelease.Routine import Distribution
+# import geoRoutines.Remove_from_PublicRelease.Routine as RT
 
 def BackGroundImg(backGroundImg):
     # Create back ground Image

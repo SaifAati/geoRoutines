@@ -1,4 +1,6 @@
-# Copyright (C) 2020, SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
 import os
 
 import geojson
@@ -107,11 +109,15 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
 def WriteJson(features, outputFile, driver="GeoJSON"):
     """
 
-    :param features:
-    :param outputFile:
-    :param driver:
-    :return:
+    Args:
+        features:
+        outputFile:
+        driver:
+
+    Returns:
+
     """
+
 
     outputFile = outputFile + VectorDrivers(driver)
     # print(features)

@@ -1,14 +1,26 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020-2021
+
 import geojson, geopandas, os
 import gdal, ogr, osr
 import numpy as np
 import matplotlib.pyplot as plt
 
 import geoRoutines.RandomColors as randomcolsRT
-from geoRoutines.georoutines import ComputeEpsg,ConvCoordMap1ToMap2
 
 
 ######################################## Read Vectors ##################################################################
 def GetVectorInfo(shpInput, displayInfo=True):
+    """
+
+    Args:
+        shpInput:
+        displayInfo:
+
+    Returns:
+
+    """
     vectorData = ReadVector(shpInput=shpInput)
     dataInfo = {"Type": type(vectorData), "Head": vectorData.head, "CRS": vectorData.crs,
                 "EPSG": vectorData.crs.to_epsg()}
@@ -30,6 +42,15 @@ def GetVectorInfo(shpInput, displayInfo=True):
 
 
 def ReadVector(shpInput, show=False):
+    """
+
+    Args:
+        shpInput:
+        show:
+
+    Returns:
+
+    """
     # Read file using gpd.read_file()
     data = geopandas.read_file(shpInput)
     if show:
@@ -240,6 +261,7 @@ def ShpDistance(shpDataFrame):
     :param shpDataFrame: the return of  ReadVector
     :return:
     """
+    from geoRoutines.georoutines import ComputeEpsg
     data = shpDataFrame
     if data.empty:
         return 0
@@ -271,6 +293,7 @@ def Intersection_(fp1, fp2, display=False):
     # if fp1Info["EPSG"] != fp2Info["EPSG"]:
     #     print("Layers does not have the same CRS")
     "https://www.earthdatascience.org/workshops/gis-open-source-python/reproject-vector-data-in-python/"
+    from geoRoutines.georoutines import ComputeEpsg
     fpList = [fp1, fp2]
     print(fp1, "\n", fp2)
     fpDF_List = []
@@ -324,6 +347,8 @@ def Intersection_(fp1, fp2, display=False):
 
 
 def GetBoundsGeojson(geojsonFile, conv2UTM=False):
+    from geoRoutines.georoutines import ConvCoordMap1ToMap2
+    from geoRoutines.georoutines import ComputeEpsg
     if isinstance(geojsonFile, str):
         import json
         with open(geojsonFile) as json_file:
@@ -354,7 +379,6 @@ def GetBoundsGeojson(geojsonFile, conv2UTM=False):
     else:
         epsg = 4326
         return lonList, latList, epsg
-
 
 
 

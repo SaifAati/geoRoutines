@@ -1,8 +1,12 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
 import geojson
 import geopandas
 import matplotlib.pyplot as plt
 from geoRoutines.RandomColors import GenerateColors
-import geoRoutines.Remove_from_PublicRelease.Routine as RT
+# import geoRoutines.Remove_from_PublicRelease.Routine as RT
+from geoRoutines.georoutines import ComputeEpsg
 class OverlappingClass:
     ## Note need to use the intersection in routine lyer
     def __init__(self, imgfp1, imgfp2, display=False):
@@ -50,7 +54,7 @@ class OverlappingClass:
         if self.intersection != 0:
             dfCopy = self.interDF.copy()
             coords = self.intersection['geometry']['coordinates']
-            epsg = "epsg:" + str(RT.ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1]))
+            epsg = "epsg:" + str(ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1]))
             dfCopy = dfCopy.to_crs({'init': epsg})
             self.inter_area = (dfCopy['geometry'].area / 10 ** 6)[0]
 

@@ -1,11 +1,22 @@
+# Author : Saif Aati
+# Contact: saif@caltech.edu / saifaati@gmail.com
+
 import fnmatch
 import os
 from shutil import rmtree, copyfile
 import shutil
 
-
-# import Correlation_misc as CorrMis
 def GetFilesBasedOnExtension(path, filter="*.tif", disp=False):
+    """
+
+    Args:
+        path:
+        filter:
+        disp:
+
+    Returns:
+
+    """
     import glob
     os.chdir(path)
     filesList = []
@@ -20,6 +31,16 @@ def GetFilesBasedOnExtension(path, filter="*.tif", disp=False):
 
 
 def GetFilesBasedOnExtensions(path, filterList=["*.tif", "*.vrt"], disp=False):
+    """
+
+    Args:
+        path:
+        filterList:
+        disp:
+
+    Returns:
+
+    """
     import glob
     os.chdir(path)
     filesList = []
@@ -35,6 +56,16 @@ def GetFilesBasedOnExtensions(path, filterList=["*.tif", "*.vrt"], disp=False):
 
 
 def FilesInDirectory(path, exclusionFilter=[], displayFile=False):
+    """
+
+    Args:
+        path:
+        exclusionFilter:
+        displayFile:
+
+    Returns:
+
+    """
     files = os.listdir(path)
     files.sort()
     if exclusionFilter:
@@ -59,6 +90,14 @@ def FilesInDirectory(path, exclusionFilter=[], displayFile=False):
 
 
 def GetOnlyTifImages(path):
+    """
+
+    Args:
+        path:
+
+    Returns:
+
+    """
     imgs = FilesInDirectory(path)
     imgsPath = []
     for index, img_ in enumerate(imgs):
@@ -68,6 +107,14 @@ def GetOnlyTifImages(path):
 
 
 def DirectoryAsEmpty(directoryPath):
+    """
+
+    Args:
+        directoryPath:
+
+    Returns:
+
+    """
     files = FilesInDirectory(directoryPath)
     for i in range(len(files)):
         filePath = directoryPath + files[i]
@@ -79,11 +126,16 @@ def CreateDirectory(directoryPath, folderName, cal=None):
     """
     Create a Folder in the directory.
     Before that this function verify if the name of the folder exist in the directory
-    if the folder exist the user will chose either crete new one or delete it
-    :param directoryPath: the path where to create the folder : string
-    :param folderName: the name of the folder : string
-    :return:
+    if the folder exist the user will choose either to create new one or delete it
+    Args:
+        directoryPath:
+        folderName:
+        cal:
+
+    Returns:
+
     """
+
     # define the name of the directory to be created
 
     path = os.path.join(directoryPath, folderName)
@@ -129,6 +181,15 @@ def CreateDirectory(directoryPath, folderName, cal=None):
 
 
 def CreateTxtOfFiles(inputFolder, outputFileName="ListofImgs.txt"):
+    """
+
+    Args:
+        inputFolder:
+        outputFileName:
+
+    Returns:
+
+    """
     files = FilesInDirectory(path=inputFolder)
     with open(os.path.join(inputFolder, outputFileName), 'w') as f:
         for file_ in files:
@@ -138,12 +199,16 @@ def CreateTxtOfFiles(inputFolder, outputFileName="ListofImgs.txt"):
 
 
 def DeleteSubsets(inputFilePath, refTxtFile):
-    ##### Version 0.01 ##### To be continued
     """
-    this function will delete the subset that does not exit in the refFile
-    :param pathRefFile:
-    :return:
+    This function will delete the subset that does not exit in the refFile
+    Args:
+        inputFilePath:
+        refTxtFile:
+
+    Returns:
+
     """
+
     ## Read all imgs in subset folder
     files = FilesInDirectory(path=inputFilePath)
 
@@ -155,6 +220,15 @@ def DeleteSubsets(inputFilePath, refTxtFile):
 
 
 def CompareTwoFiles(file1, file2):
+    """
+
+    Args:
+        file1:
+        file2:
+
+    Returns:
+
+    """
     lineList1 = [line.rstrip('\n') for line in open(file1)]
     lineList2 = [line.rstrip('\n') for line in open(file2)]
     for f in lineList1:
@@ -164,6 +238,15 @@ def CompareTwoFiles(file1, file2):
 
 
 def UncompressFile(compressedFilePath, output=None):
+    """
+
+    Args:
+        compressedFilePath:
+        output:
+
+    Returns:
+
+    """
     import tarfile
     import zipfile
     if tarfile.is_tarfile(compressedFilePath):
@@ -182,6 +265,15 @@ def UncompressFile(compressedFilePath, output=None):
 
 
 def UncompressBatch(directoryInput, directoryOutput):
+    """
+
+    Args:
+        directoryInput:
+        directoryOutput:
+
+    Returns:
+
+    """
     filesList = GetFilesBasedOnExtension(path=directoryInput, filter="*.zip")
     nbTot = len(filesList)
     for index, file_ in enumerate(filesList):
@@ -193,6 +285,16 @@ def UncompressBatch(directoryInput, directoryOutput):
 
 
 def CopyFile(inputFilePath, outputFolder, overWrite=True):
+    """
+
+    Args:
+        inputFilePath:
+        outputFolder:
+        overWrite:
+
+    Returns:
+
+    """
     outputFilePath = os.path.join(outputFolder, os.path.basename(inputFilePath))
     files = os.listdir(outputFolder)
     if os.path.basename(inputFilePath) not in files:
@@ -209,6 +311,16 @@ def CopyFile(inputFilePath, outputFolder, overWrite=True):
 
 
 def Copyfiles(inputdirectory, destinationDirectory, filter=".NTF"):
+    """
+
+    Args:
+        inputdirectory:
+        destinationDirectory:
+        filter:
+
+    Returns:
+
+    """
     for root, dirs, files in os.walk(inputdirectory):
         for name in files:
             if name.endswith((filter)):
@@ -220,8 +332,17 @@ def Copyfiles(inputdirectory, destinationDirectory, filter=".NTF"):
 
 
 def LocateFile(pattern, root=os.curdir):
-    '''Locate all files matching supplied filename pattern in and below
-    supplied root directory.'''
+    """
+    Locate all files matching supplied filename pattern in and below
+    supplied root directory.
+    Args:
+        pattern:
+        root:
+
+    Returns:
+
+    """
+
 
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
@@ -231,7 +352,15 @@ def LocateFile(pattern, root=os.curdir):
 def ExtractSubfiles(inputdirectory, fileExtension=[".NTF"], disp=False):
     """
 
+    Args:
+        inputdirectory:
+        fileExtension:
+        disp:
+
+    Returns:
+
     """
+
     filesList = []
     for root, dirs, files in os.walk(inputdirectory):
         for name in files:
@@ -244,6 +373,15 @@ def ExtractSubfiles(inputdirectory, fileExtension=[".NTF"], disp=False):
 
 
 def ContentFolderDelete(folder, exception=None):
+    """
+
+    Args:
+        folder:
+        exception:
+
+    Returns:
+
+    """
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         if filename != exception:
@@ -258,7 +396,16 @@ def ContentFolderDelete(folder, exception=None):
 
 
 def ContentOfFolder(folderPath):
-    # https://thispointer.com/python-how-to-get-list-of-files-in-directory-and-sub-directories/
+    """
+
+    Args:
+        folderPath:
+
+    Returns:
+    References:
+        https://thispointer.com/python-how-to-get-list-of-files-in-directory-and-sub-directories/
+
+    """
     fileListNames = []
     dirPathList = []
     dirNamesList = []

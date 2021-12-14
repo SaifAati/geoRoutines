@@ -1,19 +1,22 @@
-import os
-import warnings
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
+import os,gdal, warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.stats import norm
 from scipy import ndimage
-import geoRoutines.FilesCommandRoutine as FileRT
-import geoRoutines.Remove_from_PublicRelease.Routine as RT
-import geoRoutines.Plotting.Plotting_Routine as Plot
-import gdal
+
+
 from pathlib import Path
 
-
+import geoRoutines.FilesCommandRoutine as FileRT
+import geoRoutines.Plotting.Plotting_Routine as Plot
+# import geoRoutines.Remove_from_PublicRelease.Routine as RT
 def MaskDisplacementMap(maskFile, map2Mask, bandNumber=1, visualization=False):
+    #ToDo: adapt to RasterInfo class
     maskArray = RT.ImageAsArray(RT.GetRasterInfo(maskFile))
     print(maskArray)
     mask = maskArray > 0

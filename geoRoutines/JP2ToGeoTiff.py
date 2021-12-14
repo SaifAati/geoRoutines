@@ -1,5 +1,6 @@
 # Author : Saif Aati
-# Contact: saif@caltech.edu / saifaati@gmail.com
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
 
 import argparse
 import glob

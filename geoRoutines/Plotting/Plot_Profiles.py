@@ -1,3 +1,7 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

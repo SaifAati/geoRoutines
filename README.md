@@ -1,6 +1,6 @@
 # Geospatial routines
 
-Python routines of geospatial data.
+Geospatial routines.
 
 [Saif Aati](mailto:saif@caltech.edu)
     - saif@caltech.edu

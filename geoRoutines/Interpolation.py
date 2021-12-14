@@ -1,3 +1,6 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2021
 import sys
 
 import numpy as np

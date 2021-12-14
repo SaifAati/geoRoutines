@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='geospatialroutines',
-    version='0.0.4',
+    version='0.1.1',
     author="Saif Aati",
     author_email="saif@caltech.edu, saifaati@gmail.com",
     description="Geospatial routines",

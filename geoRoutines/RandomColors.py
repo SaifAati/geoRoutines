@@ -1,3 +1,6 @@
+# Author : Saif Aati
+# Contact: SAIF AATI  <saif@caltech.edu> <saifaati@gmail.com>
+# Copyright (C) 2020
 #https://gist.github.com/adewes/5884820
 
 import random
