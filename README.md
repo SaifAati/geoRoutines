@@ -19,13 +19,13 @@ To install `geoRoutines`from sources:
     conda activate geoCosiCorr3D
     pip install -e .
 ### Citation 
-AATI SAIF. Geospastial Routine Python Package. v0.1.1, Zenodo, 14 Dec. 2021, p., doi:10.5281/zenodo.5780871.
+AATI SAIF. Geospatial Routine Python Package. v0.1.1, Zenodo, 14 Dec. 2021, p., doi:10.5281/zenodo.5780871.
 
 BibTex Export:
 
 @software{aati_saif_2021_5780871,\
   author       = {AATI SAIF},\
-  title        = {Geospastial Routine python package},\
+  title        = {Geospatial Routine python package},\
   month        = dec,\
   year         = 2021,\
   publisher    = {Zenodo},\
