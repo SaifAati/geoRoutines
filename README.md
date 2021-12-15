@@ -11,13 +11,15 @@ The main source code repository is https://github.com/SaifAati/geoRoutines.git
 
 
 # Installation
-To install `geoRoutines`from sources:
+To install `geoRoutines`from source:
 
     git clone https://github.com/SaifAati/geoRoutines.git
     cd geoRoutines
     conda env create -- file geoCosiCorr3D.yml
     conda activate geoCosiCorr3D
     pip install -e .
+
+
 ### Citation 
 AATI SAIF. Geospatial Routine Python Package. v0.1.1, Zenodo, 14 Dec. 2021, p., doi:10.5281/zenodo.5780871.
 
