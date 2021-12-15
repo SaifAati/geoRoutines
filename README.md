@@ -10,6 +10,7 @@ Contact Information
 
 Questions, comments, and bug reports can be sent to:
 [Saif Aati](mailto:saif@caltech.edu)
+
     - saif@caltech.edu
     - saifaati@gmail.com
 
