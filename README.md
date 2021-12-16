@@ -2,7 +2,7 @@
 
 Copyright 2019-2020 Saif Aati (saif@caltech.edu || saifaati@gmail.com)
 # Geospatial routines
-
+Set of tools and libraries for geospatial data processing and analysis.
 The main source code repository is: https://github.com/SaifAati/geoRoutines.git
 
 Contact Information
