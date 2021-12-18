@@ -591,7 +591,7 @@ def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
 
 
     # rasterInfo = GetRasterInfo(inputRaster)
-    rasterInfo = RasterInfo(img_)
+    rasterInfo = RasterInfo(inputRaster)
     print(rasterInfo["NbBands"])
     for i in range(rasterInfo["NbBands"]):
         # array = ImageAsArray(rasterInfo, i + 1)
