@@ -24,7 +24,7 @@ To install `geoRoutines`from source:
     cd geoRoutines
     conda env create --file geoCosiCorr3D.yml
     conda activate geoCosiCorr3D
-    pip install -e .
+    pip install .
 
 
 ### Citation
