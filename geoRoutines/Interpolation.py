@@ -10,7 +10,6 @@ from scipy.interpolate import *
 import warnings
 
 
-
 class BicubicInterpolation:
 
     def __init__(self, rasterInfo, x, y):
@@ -69,7 +68,6 @@ class BicubicInterpolation:
             return res, False
         else:
             return 0, True
-
 
 
 def InterpolationMethods(method):
@@ -210,13 +208,12 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
                         https://www.harrisgeospatial.com/docs/INTERPOLATE.html
     """
 
-
-
     shape = np.shape(inArray)
     lin = shape[0]
     col = shape[1]
     # print("-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*")
     # print(inArray.shape,x,y)
+
     if kind == "RectBivariateSpline":
         f = RectBivariateSpline(np.arange(0, lin, 1), np.arange(0, col, 1), inArray, kx=3, ky=3, s=0)
         if len(x) > 1 and len(y) > 1:
@@ -243,14 +240,16 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
             # print(f(x,y))
             return [f(x, y).item()]
     if kind == "linear" or kind == "nearest":
-        #'linear in 1d = binlinear in 2D'
+        # 'linear in 1d = binlinear in 2D'
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.RegularGridInterpolator.html
-        from scipy.interpolate import RegularGridInterpolator
-        f = interpolate.RegularGridInterpolator((np.arange(0, lin, 1), np.arange(0, col, 1)), inArray,
+
+        f = interpolate.RegularGridInterpolator(points=(np.arange(0, lin, 1), np.arange(0, col, 1)),
+                                                values=inArray,
                                                 method=kind,
                                                 bounds_error=False,
-                                                fill_value= np.nan)
-        return f(list(zip(x, y)))
+                                                fill_value=np.nan)
+
+        return f(np.array([x, y]).T)
 
 
 def Interpolate2D_batch(inArray, x_Array, y_Arrary, kind='cubic'):
@@ -298,6 +297,7 @@ def Bilinear_2D(inarray, lin, col):
                   inarray[j, i] + inarray[j + 1, i + 1] - inarray[j, i + 1] - inarray[j + 1, i])
     return res
 
+
 def Lagrange_2D(inarray, lin, col):
     def Dfunction(x):
         if np.abs(x) < 1:
@@ -330,6 +330,7 @@ def Lagrange_2D(inarray, lin, col):
     res = a1 * Dfunction(dy + 1) + a2 * Dfunction(dy) + a3 * Dfunction(dy - 1) + a4 * Dfunction(dy - 2)
     return res
 
+
 def Interpoate1D(X, Y, xCord, kind="linear"):
     # print(X,Y)
     f = interp1d(X, Y, kind=kind, fill_value="extrapolate")
@@ -340,7 +341,17 @@ def Interpoate1D(X, Y, xCord, kind="linear"):
     else:
         return [ynew.item()]
 
+
 def LinearIterpolation(array, location):
+    """
+
+    Args:
+        array:
+        location:
+
+    Returns:
+
+    """
 
     loc = int(location)
     tmpArr = array[loc]
@@ -349,5 +360,3 @@ def LinearIterpolation(array, location):
     else:
         res = (array[-1] - tmpArr) * (location - loc) + tmpArr
     return res
-
-
