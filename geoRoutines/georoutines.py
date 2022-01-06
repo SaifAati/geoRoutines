@@ -225,7 +225,6 @@ class RasterInfo:
 
         """
 
-
         ## Apply inverse affine transformation
         rtnX = self.geoTrans[2]
         rtnY = self.geoTrans[4]
@@ -253,7 +252,7 @@ class RasterInfo:
             Y: list of yMap coordinate: list of int or float
 
         Returns:
-            coordinate in image space : tuple in pix
+            coordinate in image space (X_pix, Y_pix) : tuple in pix
 
         """
         X_pix = []
@@ -577,7 +576,8 @@ def Create_MultiBandsRaster_form_MultiRasters(rastersList, outputPath, bandNumbe
     #             numberOfBands=len(rastersList), descriptions=bandDescription)
     return outputPath
 
-#FIXME
+
+# FIXME
 def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
     """
 
@@ -588,7 +588,6 @@ def Create_MultiRasters_from_MultiBandsRaster(inputRaster, output):
     Returns:
 
     """
-
 
     # rasterInfo = GetRasterInfo(inputRaster)
     rasterInfo = RasterInfo(inputRaster)
@@ -629,14 +628,14 @@ def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputTyp
         if vrt == True:
             gdal.Translate(destName=os.path.join(outputFile + ".vrt"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, outputType=gdal.GDT_Float32)
+                           projWin=areaCoord, outputType=outputType)
             oList.append(os.path.join(outputFile + ".vrt"))
 
         else:
             format = "GTiff"
             gdal.Translate(destName=os.path.join(outputFile + ".tif"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, format=format, outputType=gdal.GDT_Float32)
+                           projWin=areaCoord, format=format, outputType=outputType)
             oList.append(os.path.join(outputFile + ".tif"))
 
     return oList
@@ -704,7 +703,7 @@ def GetOverlapAreaOfRasters(rasterPathList):
         return 0
 
 
-def CropBatch(rasterList, outputFolder, vrt=False):
+def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
     """
 
     Args:
@@ -732,7 +731,7 @@ def CropBatch(rasterList, outputFolder, vrt=False):
 
     SubsetRasters(rasterList=imgList,
                   areaCoord=[min(mapCoord[0]), max(mapCoord[1]), max(mapCoord[0]), min(mapCoord[1])],
-                  outputFolder=outputFolder, vrt=vrt)
+                  outputFolder=outputFolder, vrt=vrt, outputType=outputType)
 
     # "-projwin 447225.5722201146 3949058.1522487984 458500.62972338597 3939574.181140272"
     # "445736.44193266885 3948226.6834077216 453940.68389572675 3938979.290404687"
@@ -814,7 +813,6 @@ def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
          - if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
     """
 
-
     sourceEPSG_string = "epsg:" + str(sourceEPSG)
     targetEPSG_string = "epsg:" + str(targetEPSG)
     transformer = pyproj.Transformer.from_crs(sourceEPSG_string, targetEPSG_string)
@@ -862,8 +860,6 @@ def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
     # TODO: the conversion is performed using pyproj. House implementation could be used.
     ## (see IDL version: convert_geographic_to_cartesian)
 
-
-
     transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
                                             always_xy=True)
     Xpj, Ypj, Zpj = transproj.transform(Lon, Lat, Alt, radians=False)
@@ -897,7 +893,6 @@ def ConvertCartesian2Geo(x, y, z):
 
 
 def ConvertCartesian2Geo_Batch(X, Y, Z):
-
     transproj = pyproj.Transformer.from_crs({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'}, "EPSG:4326",
                                             always_xy=True)
     Lon, Lat, Alt = transproj.transform(X, Y, Z, radians=False)
@@ -915,7 +910,6 @@ def BoundingBox2D(pts):
         [x, y, w, h]: coordinates of the top-left corner, width and height of the bounding box : list
 
     """
-
 
     dim = len(pts[0])  # should be 2
     bb_min = [min([t[i] for t in pts]) for i in range(dim)]
