@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 
 
-import geoRoutines.georoutines as geoRT
+
 from geoCosiCorr3D.geoRSM.Pixel2GroundDirectModel import cPix2GroundDirectModel
 
 
@@ -207,7 +207,7 @@ def ComputeFootprint(rsmModel, oProj, demInfo=None, rsmCorrectionArray=np.zeros(
     Returns:
 
     """
-
+    import geoRoutines.georoutines as geoRT
     iXPixList = [0, rsmModel.nbCols - 1, 0, rsmModel.nbCols - 1]
     iYPixList = [0, 0, rsmModel.nbRows - 1, rsmModel.nbRows - 1]
 
