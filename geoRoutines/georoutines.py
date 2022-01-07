@@ -799,18 +799,22 @@ def ConvertRaster2WGS84(inputPath, outputPath=None):
 
 def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
     """
-    convert point coordinates from source to target system
+    Convert point coordinates from source to target system
+
     Args:
-        X ,Y:  map coordinate (e.g lon,lat)
-         Z:
-        targetEPSG: target coordinate system of the point; integer
-        sourceEPSG: source coordinate system of the point; integer (default geographic coordinate )
+        X:map coordinate (e.g lon,lat)
+        Y:map coordinate (e.g lon,lat)
+        targetEPSG:target coordinate system of the point: integer
+        Z:map coordinates
+        sourceEPSG:source coordinate system of the point: integer (default geographic coordinate )
 
     Returns:
-        point in target coordinate system; list =[xCoord,yCoord,zCoord]
+        point in target coordinate system; list =[xCoord,yCoord,zCoord].
+
     Notes:
-         - if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
-         - if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
+        - if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
+        - if the transformation from UTM to WGS 84, x=easting, y=Notthing ==> lat, long
+
     """
 
     sourceEPSG_string = "epsg:" + str(sourceEPSG)
