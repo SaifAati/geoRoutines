@@ -769,33 +769,50 @@ def Plot_scatter():
 
 
 def VisualizeCorrelation(iCorrPath,
-                         ewArray, nsArray,
+                         ewArray,
+                         nsArray,
                          snrArray=[],
-                         vmin=-10, vmax=10,
+                         vmin=None,
+                         vmax=None,
                          title=False,
                          cmap="RdYlBu",
                          save=True,
                          show=False):
     # import geospatialroutine.georoutines as geoRT
     # corrInfo = geoRT.RasterInfo(iCorrPath)
+    ewStat = geoRT.cgeoStat(inputArray=ewArray, displayValue=False)
+    nsStat = geoRT.cgeoStat(inputArray=nsArray, displayValue=False)
+    # nsMean = float(nsStat.mean)
+    nsvMin, ewvMin = vmin,vmin
+    nsvMax, ewvMax = vmax, vmax
+    if vmin==None:
+        nsvMin = float(nsStat.mean) -float(nsStat.std)
+        ewvMin = float(ewStat.mean) -float(ewStat.std)
+
+    if vmax == None:
+        nsvMax = float(nsStat.mean) + float(nsStat.std)
+        ewvMax = float(ewStat.mean) + float(ewStat.std)
+
+
     if len(snrArray) != 0:
-        fig, axs = plt.subplots(1, 3)
+        fig, axs = plt.subplots(1, 3,figsize=(16, 9))
         axs[0].imshow(snrArray, cmap="gray", vmin=0.3, vmax=0.95)
         axs[1].imshow(ewArray, cmap=cmap, vmin=vmin, vmax=vmax)
         im1 = axs[2].imshow(nsArray, cmap=cmap, vmin=vmin, vmax=vmax)
         for ax, title_ in zip(axs, ["SNR", "East/West", "North/South"]):
             ax.axis('off')
             ax.set_title(title_)
-        ColorBar_(ax=axs[-1], mapobj=im1, cmap=cmap, vmin=vmin, vmax=vmax, orientation="vertical")
+        # ColorBar_(ax=axs[-1], mapobj=im1, cmap=cmap, vmin=vmin, vmax=vmax, orientation="vertical")
     else:
-        fig, axs = plt.subplots(1, 2)
+        fig, axs = plt.subplots(1, 2,figsize=(16,9))
 
-        axs[0].imshow(ewArray, cmap=cmap, vmin=vmin, vmax=vmax)
-        im1 = axs[1].imshow(nsArray, cmap=cmap, vmin=vmin, vmax=vmax)
+        imEW=axs[0].imshow(ewArray, cmap=cmap, vmin=ewvMin, vmax=ewvMax)
+        imNS = axs[1].imshow(nsArray, cmap=cmap, vmin=nsvMin, vmax=nsvMax)
         for ax, title_ in zip(axs, ["East/West", "North/South"]):
             ax.axis('off')
             ax.set_title(title_)
-        ColorBar_(ax=axs[-1], mapobj=im1, cmap=cmap, vmin=vmin, vmax=vmax, orientation="vertical")
+        ColorBar_(ax=axs[0], mapobj=imEW, cmap=cmap, vmin=ewvMin, vmax=ewvMin, orientation="vertical")
+        ColorBar_(ax=axs[1], mapobj=imNS, cmap=cmap, vmin=nsvMin, vmax=nsvMin, orientation="vertical")
 
     if not title:
         fig.suptitle(Path(iCorrPath).stem)
