@@ -13,14 +13,10 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm
 from pathlib import Path
 
-from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
-                               AutoMinorLocator)
 
 from geoRoutines.georoutines import GetWindow
 import geoRoutines.FilesCommandRoutine as FileRT
 import geoRoutines.georoutines as geoRT
-
-
 # from geoRoutines.Remove_from_PublicRelease.Routine import Distribution
 # import geoRoutines.Remove_from_PublicRelease.Routine as RT
 
@@ -781,25 +777,25 @@ def VisualizeCorrelation(iCorrPath,
                          title=False,
                          cmap="RdYlBu",
                          save=True,
-                         show=False,
-                         factor=1):
+                         show=False):
     # import geospatialroutine.georoutines as geoRT
     # corrInfo = geoRT.RasterInfo(iCorrPath)
     ewStat = geoRT.cgeoStat(inputArray=ewArray, displayValue=False)
     nsStat = geoRT.cgeoStat(inputArray=nsArray, displayValue=False)
     # nsMean = float(nsStat.mean)
-    nsvMin, ewvMin = vmin, vmin
+    nsvMin, ewvMin = vmin,vmin
     nsvMax, ewvMax = vmax, vmax
-    if vmin == None:
-        nsvMin = float(nsStat.mean) - factor * float(nsStat.std)
-        ewvMin = float(ewStat.mean) - factor * float(ewStat.std)
+    if vmin==None:
+        nsvMin = float(nsStat.mean) -float(nsStat.std)
+        ewvMin = float(ewStat.mean) -float(ewStat.std)
 
     if vmax == None:
-        nsvMax = float(nsStat.mean) + factor * float(nsStat.std)
-        ewvMax = float(ewStat.mean) + factor * float(ewStat.std)
+        nsvMax = float(nsStat.mean) + float(nsStat.std)
+        ewvMax = float(ewStat.mean) + float(ewStat.std)
+
 
     if len(snrArray) != 0:
-        fig, axs = plt.subplots(1, 3, figsize=(16, 9))
+        fig, axs = plt.subplots(1, 3,figsize=(16, 9))
         axs[0].imshow(snrArray, cmap="gray", vmin=0.3, vmax=0.95)
         axs[1].imshow(ewArray, cmap=cmap, vmin=vmin, vmax=vmax)
         im1 = axs[2].imshow(nsArray, cmap=cmap, vmin=vmin, vmax=vmax)
@@ -808,9 +804,9 @@ def VisualizeCorrelation(iCorrPath,
             ax.set_title(title_)
         # ColorBar_(ax=axs[-1], mapobj=im1, cmap=cmap, vmin=vmin, vmax=vmax, orientation="vertical")
     else:
-        fig, axs = plt.subplots(1, 2, figsize=(16, 9))
+        fig, axs = plt.subplots(1, 2,figsize=(16,9))
 
-        imEW = axs[0].imshow(ewArray, cmap=cmap, vmin=ewvMin, vmax=ewvMax)
+        imEW=axs[0].imshow(ewArray, cmap=cmap, vmin=ewvMin, vmax=ewvMax)
         imNS = axs[1].imshow(nsArray, cmap=cmap, vmin=nsvMin, vmax=nsvMax)
         for ax, title_ in zip(axs, ["East/West", "North/South"]):
             ax.axis('off')
@@ -823,7 +819,7 @@ def VisualizeCorrelation(iCorrPath,
     else:
         fig.suptitle(title)
     if save:
-        plt.savefig(os.path.join(os.path.dirname(iCorrPath), Path(iCorrPath).stem + ".png"), dpi=400)
+        plt.savefig(os.path.join(os.path.dirname(iCorrPath), Path(iCorrPath).stem + ".png"), dpi=600)
     if show:
         plt.show()
     fig.clear()
@@ -925,67 +921,6 @@ def VisualizeDisplacment(dispPath, vmin=-50, vmax=50, cmap="RdYlBu", title=None,
         plt.savefig(os.path.join(os.path.dirname(dispPath), Path(dispPath).stem + ".png"), dpi=600)
     else:
         plt.show()
-    return
-
-
-# ===========================================PLOT DATA =================================================================#
-def Plot_residuals(sample, yLabel='Error [pix]', title=None, save=True, oFolder=None):
-    stat = geoRT.cgeoStat(inputArray=sample, displayValue=False)
-
-    print(title + ":mean:{:.3f} ,median:{:.3f}, std:{:.3f}, RMSE:{:.3f}".format(float(stat.mean),
-                                                                                float(stat.median),
-                                                                                float(stat.std),
-                                                                                float(stat.RMSE)))
-    fig, ax = plt.subplots()
-    ax.scatter(np.arange(0, sample.shape[0], 1), sample, c="k")
-    ax.plot(np.arange(0, sample.shape[0], 1), sample)
-    ax.axhline(y=float(stat.mean), color='r', linewidth=4, linestyle='--')
-    ax.grid()
-
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-
-    ax.tick_params(which='both', width=2, direction="in")
-    ax.set_xlabel('#GCPs')
-    ax.set_ylabel(yLabel)
-    if title is not None:
-        ax.set_title(title)
-    if save == True:
-        plt.savefig(os.path.join(oFolder, title+ ".svg"), dpi=300)
-    return
-
-
-def Plot_residuals_before_after(sampleIni, sampleFinal, yLabel="Error [pix]",save=True,oFolder=None, title=None):
-    stat = geoRT.cgeoStat(inputArray=sampleIni, displayValue=False)
-    print(
-        title + "Ini :mean:{:.3f}, std:{:.3f}, RMSE:{:.3f}".format(float(stat.mean), float(stat.std), float(stat.RMSE)))
-    fig, ax = plt.subplots()
-    ax.scatter(np.arange(0, sampleIni.shape[0], 1), sampleIni, c="k")
-    ax.plot(np.arange(0, sampleIni.shape[0], 1), sampleIni, label="Initial")
-    ax.axhline(y=float(stat.mean), color='r', linewidth=4, linestyle='--')
-
-    stat = geoRT.cgeoStat(inputArray=sampleFinal, displayValue=False)
-    print(
-        title + "Final :mean:{:.3f}, std:{:.3f}, RMSE:{:.3f}".format(float(stat.mean), float(stat.std),
-                                                                     float(stat.RMSE)))
-
-    ax.scatter(np.arange(0, sampleFinal.shape[0], 1), sampleFinal, c="g")
-    ax.plot(np.arange(0, sampleFinal.shape[0], 1), sampleFinal, label="Optimized")
-    ax.axhline(y=float(stat.mean), color='g', linewidth=4, linestyle='--')
-
-    ax.grid()
-
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-
-    ax.tick_params(which='both', width=2, direction="in")
-    ax.set_xlabel('#GCPs')
-    ax.set_ylabel(yLabel)
-    if title is not None:
-        ax.set_title(title)
-    ax.legend()
-    if save ==True:
-        plt.savefig(os.path.join(oFolder, title + ".svg"), dpi=300)
     return
 
 

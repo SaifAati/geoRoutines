@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from geoRoutines.RandomColors import GenerateColors
 # import geoRoutines.Remove_from_PublicRelease.Routine as RT
 from geoRoutines.georoutines import ComputeEpsg
-class cOverlapping:
+class OverlappingClass:
     ## Note need to use the intersection in routine lyer
     def __init__(self, imgfp1, imgfp2, display=False):
         self.imgfp1 = imgfp1
@@ -54,16 +54,13 @@ class cOverlapping:
         if self.intersection != 0:
             dfCopy = self.interDF.copy()
             coords = self.intersection['geometry']['coordinates']
-            epsg = ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1])
-            epsg_ = "epsg:" + str(epsg)
-            # dfCopy = dfCopy.to_crs({'init': epsg_})
-            dfCopy = dfCopy.to_crs("epsg:"+str(epsg))
+            epsg = "epsg:" + str(ComputeEpsg(lon=coords[0][0][0], lat=coords[0][0][1]))
+            dfCopy = dfCopy.to_crs({'init': epsg})
             self.inter_area = (dfCopy['geometry'].area / 10 ** 6)[0]
 
-            # fpDFCopy = self.fpDF_List[0].copy().to_crs({'init': epsg_})
-            fpDFCopy = self.fpDF_List[0].copy().to_crs("epsg:"+str(epsg))
+            fpDFCopy = self.fpDF_List[0].copy().to_crs({'init': epsg})
             fpArea = (fpDFCopy["geometry"].area / 10 ** 6)[0]
-            self.overlapPerc = float('%1.1f' % ((self.inter_area / fpArea) * 100))
+            self.overlapPerc = '%1.1f' % ((self.inter_area / fpArea) * 100)
             # print("Intersection area (Km^2): ", self.inter_area, " Overlapping %: ", self.overlapPerc)
         else:
             self.overlapPerc = 0
