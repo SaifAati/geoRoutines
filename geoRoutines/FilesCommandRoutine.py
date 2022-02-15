@@ -6,6 +6,7 @@ import os
 from shutil import rmtree, copyfile
 import shutil
 
+
 def GetFilesBasedOnExtension(path, filter="*.tif", disp=False):
     """
 
@@ -83,9 +84,9 @@ def FilesInDirectory(path, exclusionFilter=[], displayFile=False):
         print("The list of  files are:", files, " Ntot=", len(files))
     else:
         print(" Ntot=", len(files))
-    files_ =[]
+    files_ = []
     for file_ in files:
-        files_.append(os.path.join(path,file_))
+        files_.append(os.path.join(path, file_))
     return files_
 
 
@@ -152,10 +153,10 @@ def CreateDirectory(directoryPath, folderName, cal=None):
                     print("Creation of the directory %s failed " % path)
                 else:
                     print("Successfully created the directory <<%s>> " % path)
-                    return (path )
+                    return (path)
 
             if cal == "n":
-                return (path )
+                return (path)
         if cal == "y":
             try:
                 rmtree(path)
@@ -164,9 +165,9 @@ def CreateDirectory(directoryPath, folderName, cal=None):
                 print("Creation of the directory %s failed " % path)
             else:
                 print("Successfully created the directory <<%s>> " % path)
-                return (path )
+                return (path)
         if cal == "n":
-            return (path )
+            return (path)
     else:
         try:
 
@@ -177,7 +178,7 @@ def CreateDirectory(directoryPath, folderName, cal=None):
 
         else:
             print("Successfully created the directory << %s >> " % path)
-            return (path )
+            return (path)
 
 
 def CreateTxtOfFiles(inputFolder, outputFileName="ListofImgs.txt"):
@@ -300,12 +301,12 @@ def CopyFile(inputFilePath, outputFolder, overWrite=True):
     if os.path.basename(inputFilePath) not in files:
         copyfile(src=inputFilePath, dst=outputFilePath)
     else:
-        print(os.path.basename(inputFilePath), ": exist in destination folder!!")
+        # print(os.path.basename(inputFilePath), ": exist in destination folder!!")
         if overWrite:
-            print("-- replacing with the new file !! --")
+            # print("-- replacing with the new file !! --")
             copyfile(src=inputFilePath, dst=outputFilePath)
-        else:
-            print("-- Keeping the old one !!--")
+        # else:
+        #     print("-- Keeping the old one !!--")
 
     return outputFilePath
 
@@ -342,7 +343,6 @@ def LocateFile(pattern, root=os.curdir):
     Returns:
 
     """
-
 
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
@@ -402,6 +402,8 @@ def ContentOfFolder(folderPath):
         folderPath:
 
     Returns:
+        fileList
+        dirPathList
     References:
         https://thispointer.com/python-how-to-get-list-of-files-in-directory-and-sub-directories/
 
@@ -421,9 +423,9 @@ def ContentOfFolder(folderPath):
         for name_ in list_:
             fileList.append(os.path.join(dirPath_, name_))
     #
-    print("===> #files:",len(fileList))
+    print("===> #files:", len(fileList))
 
-    return fileList,dirPathList
+    return fileList, dirPathList
 
 
 if __name__ == '__main__':
@@ -440,5 +442,6 @@ if __name__ == '__main__':
 
     # Copyfiles(inputdirectory="G:\Data\Ridgecrest\WV_Data_ridgecrest_Chris\cont_\\Unzipped\Post_eq\\",
     #           destinationDirectory="G:\Data\Ridgecrest\WV_Data_ridgecrest_Chris\cont_\\Unzipped\All_NTF_Post_pan\\")
-    rsmList = ["/media/cosicorr/storage/Saif/1-Ridgecrest/Data/1-WV/P1BS_sorted/Before_eq/Before_eq/2017-11-30-WV2/503916437010_01_P004_PAN"]
+    rsmList = [
+        "/media/cosicorr/storage/Saif/1-Ridgecrest/Data/1-WV/P1BS_sorted/Before_eq/Before_eq/2017-11-30-WV2/503916437010_01_P004_PAN"]
     ContentOfFolder(rsmList[0])

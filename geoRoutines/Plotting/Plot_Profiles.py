@@ -156,7 +156,7 @@ class ExtractProfile:
             ax1.set_xlabel("Distance along profile [m]", fontsize=self.kwargs["fontSize"])
             ax1.set_ylabel("Displacement [m]", fontsize=self.kwargs["fontSize"])
             ax1.set_title(Path(self.rasterPath).stem + "_band:" + str(self.bandNumber))
-
+            # ax1.set_title(Path(self.rasterPath).stem + "_band:" + str(self.bandNumber))
             _, xMax = ax1.get_xlim()
             yMin, yMax = ax1.get_ylim()
             text = '$\Delta=$' + "%.2f" % self.offset + "m\n"

@@ -8,7 +8,8 @@ import numpy as np
 
 from pathlib import Path
 
-def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=None):
+
+def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=None, debug=False):
     """
 
     Args:
@@ -22,7 +23,8 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
 
     """
     import geoRoutines.georoutines as geoRT
-    print("-------", rasterPath)
+    if debug:
+        print("-------", rasterPath)
     rasterInfo = geoRT.RasterInfo(rasterPath, False)
     w = rasterInfo.rasterWidth
     h = rasterInfo.rasterHeight
@@ -73,10 +75,10 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
                 z = rpc.altOff
                 print("z=", z)
 
-        lons, lats = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0],
-                                        lin=[0, h, h, 0, 0],
-                                        alt=[z, z, z, z, z],
-                                        normalized=False)
+        lons, lats, _ = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0],
+                                           lin=[0, h, h, 0, 0],
+                                           altIni=[z, z, z, z, z],
+                                           normalized=False)
         # print(lons, lats)
 
     else:
@@ -116,7 +118,6 @@ def WriteJson(features, outputFile, driver="GeoJSON"):
     Returns:
 
     """
-
 
     outputFile = outputFile + VectorDrivers(driver)
     # print(features)
@@ -191,7 +192,9 @@ def fp_area(geometry):
     # print(area)
     return area
 
-def ComputeFootprint(rsmModel, oProj, demInfo=None, rsmCorrectionArray=np.zeros((3, 3))):
+
+def ComputeFootprint(rsmModel, oProj, save=False, oFolder=None, fileName=None, demInfo=None,
+                     rsmCorrectionArray=np.zeros((3, 3))):
     """
 
     Args:
@@ -236,6 +239,24 @@ def ComputeFootprint(rsmModel, oProj, demInfo=None, rsmCorrectionArray=np.zeros(
     ## Convert foot printcoord to the grid projection system
 
     geoGround = np.asarray(geoCoordList)
+    if oProj == 4326:
+        crs__ = {
+            "type": "name",
+            "properties": {
+                "name": "EPSG:4326"
+            }
+        }
+
+        res = geoGround
+        lons, lats = res[:, 0], res[:, 1]
+        lons = [res[0, 0], res[1, 0], res[3, 0], res[2, 0], res[0, 0]]
+        lats = [res[0, 1], res[1, 1], res[3, 1], res[2, 1], res[0, 1]]
+        footprint = geojson.Feature(geometry=geojson.Polygon([list(zip(lons, lats))]),
+                                    properties={"name": fileName}, crs=crs__)
+
+        WriteJson(features=footprint, outputFile=os.path.join(oFolder, fileName))
+
+        return geoGround, footprint
 
     utmGround = geoRT.ConvCoordMap1ToMap2_Batch(X=list(geoGround[:, 1]),
                                                 Y=list(geoGround[:, 0]),

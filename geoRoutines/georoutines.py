@@ -77,6 +77,15 @@ class RasterInfo:
             self.rasterName = os.path.basename(inputRaster)
             self.raster = gdal.Open(self.rasterPath)
             self.geoTrans = self.raster.GetGeoTransform()
+            self.geoTransMatrix_pix2map = np.array([[self.geoTrans[1], self.geoTrans[2], self.geoTrans[0]],
+                                                    [self.geoTrans[4], self.geoTrans[5], self.geoTrans[3]],
+                                                    [0, 0, 1]])
+            R = np.array([[self.geoTrans[1], self.geoTrans[2], 0],
+                          [self.geoTrans[4], self.geoTrans[5], 0],
+                          [0, 0, 1]])
+            T = np.array([[0, 0, self.geoTrans[0]], [0, 0, self.geoTrans[3]], [0, 0, 0]])
+
+            self.geoTransMatrix_map2pix = np.linalg.inv(R) - np.dot(np.linalg.inv(R), T)
             self.GetRasterInfo(printInfo)
         except:
             print('Problem when loading image with GDAL:', self.rasterPath, sys.exc_info())
@@ -85,8 +94,8 @@ class RasterInfo:
 
     def GetRasterInfo(self, printInfo):
         if self.error == False:
-            self.xOrigin = self.geoTrans[0]
-            self.yOrigin = self.geoTrans[3]
+            self.xOrigin = self.geoTrans[0]  ## UpLeftEW
+            self.yOrigin = self.geoTrans[3]  ## UpLeftNs
             self.pixelWidth = self.geoTrans[1]
             self.pixelHeight = self.geoTrans[5]
             self.nbBand = self.raster.RasterCount
@@ -200,8 +209,7 @@ class RasterInfo:
             X: list of xPixel coordinates : list of int of float
             Y: list of  yPixel coordinates:  list of int or float
 
-        Returns:
-             xMap,yMap : tuple  (non integer coordinates)
+        Returns: xMap,yMap : tuple  (non integer coordinates)
 
         """
 
@@ -220,8 +228,7 @@ class RasterInfo:
             x: xMap coordinate : int or float
             y: yMap coordinate: int or float
 
-        Returns:
-            coordinate in image space : tuple in pix
+        Returns: coordinate in image space : tuple in pix
 
         """
 
@@ -264,6 +271,11 @@ class RasterInfo:
         return (X_pix, Y_pix)
 
     def RasterDims(self):
+        """
+        
+        Returns:[upLeftEW,botRightEW,botRightNS,upLeftNS], [x0,xf,yf,y0]
+
+        """
 
         ds = rasterio.open(self.rasterPath)
         bounds = ds.bounds
@@ -387,7 +399,8 @@ def WriteRaster(oRasterPath,
         outband = outRaster.GetRasterBand(i + 1)
         outband.WriteArray(arrayList[i], resample_alg=resample_alg)
         if noData != None:
-            print("No data=", noData)
+            if progress:
+                print("No data=", noData)
             outband.SetNoDataValue(noData)
         if descriptions != None:
             outband.SetDescription(descriptions[i])
@@ -797,6 +810,29 @@ def ConvertRaster2WGS84(inputPath, outputPath=None):
     return outputPath
 
 
+def ReprojectRaster(iRasterPath, oPrj, vrt=True, oRasterPath=None):
+    """
+    Reproject a raster to a neaw projection system
+    Args:
+        iRasterPath:
+        oPrj:
+        oRasterPath:
+
+    Returns: oRasterPath
+
+    """
+    if oRasterPath == None:
+        oRasterPath = os.path.join(os.path.dirname(iRasterPath), Path(iRasterPath).stem + "_" + str(oPrj) + ".tif")
+        if vrt:
+            oRasterPath = os.path.join(os.path.dirname(iRasterPath), Path(iRasterPath).stem + "_" + str(oPrj) + ".vrt")
+    # print(oRasterPath)
+    warpOptions = gdal.WarpOptions(gdal.ParseCommandLine("-t_srs epsg:" + str(oPrj)))
+    # gdal.Warp(oRasterPath, iRasterPath, dstSRS='EPSG:'+str(oPrj))#options=warpOptions)
+    gdal.Warp(oRasterPath, iRasterPath,  options=warpOptions)
+
+    return oRasterPath
+
+
 def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
     """
     Convert point coordinates from source to target system
@@ -808,8 +844,7 @@ def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
         Z:map coordinates
         sourceEPSG:source coordinate system of the point: integer (default geographic coordinate )
 
-    Returns:
-        point in target coordinate system; list =[xCoord,yCoord,zCoord].
+    Returns:         point in target coordinate system; list =[xCoord,yCoord,zCoord] or ([lats],[lons])
 
     Notes:
         - if the transformation from WGS to UTM, x= lat, y=lon ==> coord =(easting(xMap) ,northing(yMap))
@@ -827,47 +862,64 @@ def ConvCoordMap1ToMap2_Batch(X, Y, targetEPSG, Z=[], sourceEPSG=4326):
         return transformer.transform(X, Y, Z)
 
 
-def ConvertGeo2Cartesian(lon, lat, alt):
+# def ConvertGeo2Cartesian(lon, lat, alt):
+#     """
+#
+#     Args:
+#         lon:
+#         lat:
+#         alt:
+#
+#     Returns:
+#
+#     Notes: "https://pyproj4.github.io/pyproj/dev/api/proj.html"
+#     """
+#     # TODO: the conversion is perfromed using pyproj. House implementation could be used
+#     ## (see IDL verion: convert_geographic_to_cartesian)
+#     import pyproj
+#
+#     transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
+#                                             always_xy=True)
+#     x_cart, y_cart, z_cart = transproj.transform(lon, lat, alt, radians=False)
+#     return [xpj, ypj, zpj]
+
+
+def ConvertGeo2Cartesian(Lon, Lat, Alt, method="pyprj"):
     """
 
     Args:
-        lon:
-        lat:
-        alt:
+        Lon: list []
+        Lat: list []
+        Alt: list  []
+        method: pyprj, custom
 
-    Returns:
-
-    """
-    # TODO: the conversion is perfromed using pyproj. House implementation could be used
-    ## (see IDL verion: convert_geographic_to_cartesian)
-    import pyproj
-
-    """https://pyproj4.github.io/pyproj/dev/api/proj.html"""
-    transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
-                                            always_xy=True)
-    xpj, ypj, zpj = transproj.transform(lon, lat, alt, radians=False)
-    return [xpj, ypj, zpj]
-
-
-def ConvertGeo2Cartesian_Batch(Lon, Lat, Alt):
-    """
-
-    Args:
-        Lon:
-        Lat:
-        Alt:
-
-    Returns:
+    Returns: X_cart, y_cart, Z_cart
+        
     Notes:
         https://pyproj4.github.io/pyproj/dev/api/proj.html
     """
     # TODO: the conversion is performed using pyproj. House implementation could be used.
     ## (see IDL version: convert_geographic_to_cartesian)
+    if method == "pyprj":
+        transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
+                                                always_xy=True)
+        X_cart, Y_cat, Z_cart = transproj.transform(Lon, Lat, Alt, radians=False)
+        return X_cart, Y_cat, Z_cart
+    elif method == "custom":
+        radLat = lat * (np.pi / 180.0)
+        radLon = lon * (np.pi / 180.0)
+        a = 6378137.0
+        finv = 298.257223563
+        f = 1 / finv
+        e2 = 1 - (1 - f) * (1 - f)
+        v = a / np.sqrt(1 - e2 * np.sin(radLat) * np.sin(radLat))
 
-    transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
-                                            always_xy=True)
-    Xpj, Ypj, Zpj = transproj.transform(Lon, Lat, Alt, radians=False)
-    return Xpj, Ypj, Zpj
+        X_cart = (v + alt) * np.cos(radLat) * np.cos(radLon)
+        Y_cart = (v + alt) * np.cos(radLat) * np.sin(radLon)
+        Z_cart = (v * (1 - e2) + alt) * np.sin(radLat)
+        return X_cart, Y_cat, Z_cart
+    else:
+        sys.exit("Convertion from WF84 --> Cartesian Error! ")
 
 
 def ConvertCartesian2Geo(x, y, z):
