@@ -35,7 +35,8 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
     if epsg != None:
         rasterExtent, _ = rasterInfo.RasterDims()
         # print(rasterExtent)
-        print("--- Footprint will be in WGS 84 projection system --- ")
+        if debug:
+            print("--- Footprint will be in WGS 84 projection system --- ")
         if epsg != 4326:
             x0Map, y0Map, _ = geoRT.ConvCoordMap1ToMap2(x=rasterExtent[0],
                                                         y=rasterExtent[2],
@@ -52,7 +53,8 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
 
 
     elif rasterInfo.rpcs:
-        print("--- No geoTransform in input Raster, footprint will be calculated from RFM if exist ")
+        if debug:
+            print("--- No geoTransform in input Raster, footprint will be calculated from RFM if exist ")
 
         try:
 
@@ -73,7 +75,8 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
                 import warnings
                 warnings.warn("No DEM available data, RPC altOff will be used")
                 z = rpc.altOff
-                print("z=", z)
+                if debug:
+                    print("z=", z)
 
         lons, lats, _ = rpc.Img2Ground_RFM(col=[0, 0, w, w, 0],
                                            lin=[0, h, h, 0, 0],
@@ -95,7 +98,6 @@ def RasterFootprint(rasterPath, z=None, demPath=None, writeFp=True, savingPath=N
 
     if writeFp:
         if savingPath:
-
             return footprint, WriteJson(features=footprint, outputFile=savingPath)
 
         else:
@@ -256,7 +258,7 @@ def ComputeFootprint(rsmModel, oProj, save=False, oFolder=None, fileName=None, d
 
         WriteJson(features=footprint, outputFile=os.path.join(oFolder, fileName))
 
-        return geoGround, footprint
+        return geoGround, footprint,os.path.join(oFolder, fileName+".geojson")
 
     utmGround = geoRT.ConvCoordMap1ToMap2_Batch(X=list(geoGround[:, 1]),
                                                 Y=list(geoGround[:, 0]),
