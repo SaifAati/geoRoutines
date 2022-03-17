@@ -129,6 +129,8 @@ class RasterInfo:
             self.rasterDataType = self.raster.GetRasterBand(1).DataType
             for band_ in range(self.nbBand):
                 self.bandInfo.append(self.raster.GetRasterBand(band_ + 1).GetDescription())
+                self.noData = self.raster.GetRasterBand(band_ + 1).GetNoDataValue()
+            
 
         if printInfo == True:
             print(repr(RasterInfo(self.rasterPath)))
@@ -146,7 +148,9 @@ class RasterInfo:
         raster = self.raster
         # Transform image to array
         imageAsArray = np.array(raster.GetRasterBand(bandNumber).ReadAsArray())
-
+        if self.noData != None:
+            imageAsArray = np.ma.masked_where(imageAsArray <= self.noData, imageAsArray)
+            imageAsArray = np.copy(imageAsArray.filled(fill_value=np.nan))
         return imageAsArray
 
     def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
@@ -630,6 +634,11 @@ def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputTyp
     Returns:
 
     """
+    if vrt:
+        format = "VRT"
+    else:
+        format = "GTiff"
+    params = gdal.TranslateOptions(projWin=areaCoord,format=format,outputType=outputType,noData=-32767)
     path = os.path.dirname(rasterList[0])
     oList = []
     for img_ in rasterList:
@@ -641,20 +650,19 @@ def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputTyp
         if vrt == True:
             gdal.Translate(destName=os.path.join(outputFile + ".vrt"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, outputType=outputType)
+                           options=params)
             oList.append(os.path.join(outputFile + ".vrt"))
 
         else:
-            format = "GTiff"
             gdal.Translate(destName=os.path.join(outputFile + ".tif"),
                            srcDS=gdal.Open(img_),
-                           projWin=areaCoord, format=format, outputType=outputType)
+                           options=params)
             oList.append(os.path.join(outputFile + ".tif"))
 
     return oList
 
 
-def GetOverlapAreaOfRasters(rasterPathList):
+def GetOverlapAreaOfRasters_old(rasterPathList):
     """
     the intersection area between Rasters
     Args:
@@ -677,7 +685,7 @@ def GetOverlapAreaOfRasters(rasterPathList):
         fpPathList.append(fpPath)
 
     # print("fpPathList:",fpPathList)
-    overlayTemp = lyrRT.Intersection(fp1=fpPathList[1], fp2=fpPathList[0], dispaly=True)
+    overlayTemp = lyrRT.Intersection(fp1=fpPathList[1], fp2=fpPathList[0], dispaly=False)
     # print(overlayTemp.res_inter)
     if overlayTemp.intersection != 0:
         tempIntersect = fpRT.WriteJson(features=overlayTemp.res_inter,
@@ -712,8 +720,67 @@ def GetOverlapAreaOfRasters(rasterPathList):
 
             # return overlay.res_inter
     else:
-        print("\nNo overlapping between images !!!")
+        print("\n No overlapping between images !!!")
         return 0
+
+
+def GetOverlapAreaOfRasters(rasterPathList, visu=False):
+    """
+    the intersection area between Rasters
+    Args:
+        rasterPathList:
+
+    Returns:
+        0 if no intersection
+        geojson format of the intersection is writen on the same directory of the images
+        a temp.geojson that contain the intersection are footprint
+
+
+    """
+    from shapely.geometry import Polygon
+    import geopandas
+    import matplotlib.pyplot as plt
+
+    data = {"img": [], "geometry": []}
+    for img_ in rasterPathList:
+        extent = fpRT.RasterFootprint(rasterPath=img_,
+                                      writeFp=False,
+                                      savingPath=None)
+        fp_polygon = Polygon([tuple(l) for l in extent["geometry"]['coordinates'][0]])
+        data["img"].append(img_)
+        data["geometry"].append(fp_polygon)
+    dataDf = geopandas.GeoDataFrame(data=data)
+
+    poly_i = geopandas.GeoSeries(dataDf.iloc[0]["geometry"], crs=4326)
+    poly_j = geopandas.GeoSeries(dataDf.iloc[1]["geometry"], crs=4326)
+    intersection_ij = poly_i.intersection(poly_j, align=False)
+    intersection = intersection_ij
+    if intersection.is_empty.values[0]:
+        return 0, dataDf
+    index = 2
+    while index < dataDf.shape[0]:
+        poly_j_ = geopandas.GeoSeries(dataDf.iloc[index]["geometry"], crs=4326)
+        intersection = intersection_ij.intersection(poly_j_, align=False)
+        if intersection.is_empty.values[0]:
+            return 0, dataDf
+        else:
+            index += 1
+            poly_j_ = intersection
+
+    if visu:
+        fig = plt.figure()  # figsize=(16, 9))
+        ax1 = fig.add_subplot(111)
+
+        fps = geopandas.GeoSeries(data["geometry"])
+
+        im = fps.plot(ax=ax1, edgecolor="r", facecolor="none")
+        if intersection.is_empty.values[0] == False:
+            intersection.plot(ax=ax1, edgecolor="g", facecolor="g")
+        plt.show()
+        #     # fpPathList.append(fpPath)
+    if intersection.is_empty.values[0] == False:
+        interCoord = (list(zip(*intersection[0].exterior.coords.xy)))
+        return interCoord, dataDf
 
 
 def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
@@ -728,8 +795,9 @@ def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
 
     """
     imgList = rasterList
-    coord = GetOverlapAreaOfRasters(rasterPathList=imgList)
-
+    coord, dataDf = GetOverlapAreaOfRasters(rasterPathList=imgList,visu=False)
+    if coord == 0:
+        sys.exit("No overlapping")
     rasterInfo = RasterInfo(imgList[0])
 
     Lon = []
@@ -741,7 +809,7 @@ def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
     mapCoord = ConvCoordMap1ToMap2_Batch(X=Lat, Y=Lon, sourceEPSG=4326,
                                          targetEPSG=rasterInfo.EPSG_Code)
     # print("\n", mapCoord)
-
+    mapCoordPrj = rasterInfo.EPSG_Code
     SubsetRasters(rasterList=imgList,
                   areaCoord=[min(mapCoord[0]), max(mapCoord[1]), max(mapCoord[0]), min(mapCoord[1])],
                   outputFolder=outputFolder, vrt=vrt, outputType=outputType)
@@ -750,7 +818,7 @@ def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
     # "445736.44193266885 3948226.6834077216 453940.68389572675 3938979.290404687"
     # SubsetRasters(rasterList=imgList,
     #               areaCoord=[445736.44193266885, 3948226.6834077216, 453940.68389572675 ,3938979.290404687])
-    return mapCoord, outputFolder
+    return mapCoord, mapCoordPrj, outputFolder
 
 
 # =====================================================================================================================#
@@ -904,6 +972,8 @@ def ConvertGeo2Cartesian(Lon, Lat, Alt, method="pyprj"):
         transproj = pyproj.Transformer.from_crs("EPSG:4326", {"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'},
                                                 always_xy=True)
         X_cart, Y_cat, Z_cart = transproj.transform(Lon, Lat, Alt, radians=False)
+        if len(Lon) == 1 and len(Lat) == 1 and len(Alt) == 1:
+            return [X_cart[0], Y_cat[0], Z_cart[0]]
         return X_cart, Y_cat, Z_cart
     elif method == "custom":
         radLat = Lat * (np.pi / 180.0)
@@ -917,9 +987,11 @@ def ConvertGeo2Cartesian(Lon, Lat, Alt, method="pyprj"):
         X_cart = (v + Alt) * np.cos(radLat) * np.cos(radLon)
         Y_cart = (v + Alt) * np.cos(radLat) * np.sin(radLon)
         Z_cart = (v * (1 - e2) + Alt) * np.sin(radLat)
+        if len(Lon) == 1 and len(Lat) == 1 and len(Alt) == 1:
+            return [X_cart[0], Y_cart[0], Z_cart[0]]
         return X_cart, Y_cart, Z_cart
     else:
-        sys.exit("Convertion from WF84 --> Cartesian Error! ")
+        sys.exit("Error: Conversion from WG84 --> Cartesian ! ")
 
 
 def ConvertCartesian2Geo(x, y, z):
@@ -1031,10 +1103,15 @@ if __name__ == '__main__':
     # print((xMap, yMap))
     # print((xPix, yPix))
 
-    iFolder = "/home/cosicorr/0-WorkSpace/PlanetProject/Ridgecrest_PS_Evaluation/PS_SD_Evaluation/temp"
-    iCorrList = fileRT.GetFilesBasedOnExtension(iFolder)
-    workpspaceFolder = threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=iFolder, folderName="geoICA", cal="y")
-
-    ## Crop to the same extent
-    crop_threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=workpspaceFolder, folderName="Crop", cal="y")
-    CropBatch(rasterList=iCorrList, outputFolder=crop_threeDDMapsFolder)
+    # iFolder = "/home/cosicorr/0-WorkSpace/PlanetProject/Ridgecrest_PS_Evaluation/PS_SD_Evaluation/temp"
+    # iCorrList = fileRT.GetFilesBasedOnExtension(iFolder)
+    # workpspaceFolder = threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=iFolder, folderName="geoICA", cal="y")
+    #
+    # ## Crop to the same extent
+    # crop_threeDDMapsFolder = fileRT.CreateDirectory(directoryPath=workpspaceFolder, folderName="Crop", cal="y")
+    # CropBatch(rasterList=iCorrList, outputFolder=crop_threeDDMapsFolder)
+    rasterList = fileRT.GetFilesBasedOnExtensions("/media/cosicorr/storage/Saif/Historical_Eq_NASA_project/IZMIT/temp")
+    # coord,dataDf = GetOverlapAreaOfRasters(rasterPathList=rasterList)
+    CropBatch(rasterList=rasterList,
+              outputFolder="/media/cosicorr/storage/Saif/Historical_Eq_NASA_project/IZMIT/temp/crp",vrt=True)
+    # print(coord)
