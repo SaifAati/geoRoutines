@@ -22,7 +22,7 @@ class ExtractProfile:
         :param profilePath:
         :param kwargs: bandNumber offset=False, bandNumber=1, windwSize=0, maxVal=10
         """
-        kwargs_ = {"bandNumber": 1, "windowSize": 3, "maxVal": 0, "offset": False, "center": 1000, "center_plus": 80,
+        kwargs_ = {"bandNumber": 1, "windowSize": 1, "maxVal": 0, "offset": False, "center": 1000, "center_plus": 80,
                    "center_minus": 80, "fontSize": 14}
         if kwargs:
             kwargs_.update(kwargs)
@@ -457,9 +457,9 @@ if __name__ == '__main__':
     # Plot_Profile_Qgis()
     # PlotProfilesDZ()
 
-    path = "/home/cosicorr/0-WorkSpace/3D-Correlation_project/7p1_3DDA/Sets/Couple_12/1-CCD_correction_classicMethod/NoCCDCorr/Correlation_sameExtent"
-    profilePath = os.path.join(path, "CCD_Misalignement_Profile.kml")
-    rasterPath = os.path.join(path, "16SEP08185521_NoCCDCorr_VS_18JUN16213928_NoCCD_corr_detrended_subset.tif")
+    path = "/home/cosicorr/0-WorkSpace/3-PycharmProjects/geoNLMF/geoNLMF/Test/Data"
+    profilePath = os.path.join(path, "Profile_pline.kml")
+    rasterPath = os.path.join(path, "Disp1.tif")
     profile = ExtractProfile(rasterPath=rasterPath,
-                             profilePath=profilePath, bandNumber=2, offset=False)
+                             profilePath=profilePath, bandNumber=1, offset=False)
     profile.PlotProfile()

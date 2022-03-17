@@ -610,6 +610,10 @@ def Animation_Rasters_Maps(im1, array1List, fig, figTitleList, saveAnimation=Fal
 
 
 ############################################### Distribution ###########################################################
+
+
+
+
 def PlotDistribution(inputArray, xlim=[], ylim=[0, 3], xLabel='Displacement [m]',
                      title="Displacement distribution before Offset Correction\n(full image)", nbins=50, fontSize=16,
                      svgFig=""):
@@ -772,6 +776,55 @@ def Plot_scatter():
     plt.show()
 
 
+def VisualizeDispDistribution(dispMapInfo, debug=False, vmin=None, vmax=None, factor=1):
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import scipy.stats
+    import seaborn as sns
+    ewArray = dispMapInfo.ImageAsArray(bandNumber=1)
+    nsArray = dispMapInfo.ImageAsArray(bandNumber=2)
+    ewStat = geoRT.cgeoStat(inputArray=ewArray, displayValue=debug)
+    nsStat = geoRT.cgeoStat(inputArray=nsArray, displayValue=debug)
+
+    if vmin == None and vmax == None:
+        nsvMin = float(nsStat.mean) - factor * float(nsStat.std)
+        ewvMin = float(ewStat.mean) - factor * float(ewStat.std)
+        nsvMax = float(nsStat.mean) + factor * float(nsStat.std)
+        ewvMax = float(ewStat.mean) + factor * float(ewStat.std)
+
+        vmin = min(ewvMin, nsvMin)
+        vmax = max(ewvMax, nsvMax)
+
+    fontSize = 18
+    dpi = 600
+    fig = plt.figure(figsize=(12, 8))
+    gs = gridspec.GridSpec(1, 1)
+    ax1 = plt.subplot(gs[0, 0])  # row 0, col 0
+    xLabel = "Displacements [m]"
+    sns.set()
+    # # print("Plotting ....")
+
+    ax1.set_title('Displacement density distribution')
+    color = "#000080"
+    sns.kdeplot(ewStat.sample, fill=True, alpha=0.4, linewidth=5, bw_adjust=1, label="EW disp.", color=color)
+    sns.histplot(data=ewStat.sample, stat="density", bins=200, color=color, kde=False, ax=ax1, alpha=0.5, linewidth=1,
+                 edgecolor=color)
+    color = "#6B8E23"
+    sns.histplot(data=nsStat.sample, stat="density", bins=200, kde=False, ax=ax1, alpha=0.5, linewidth=1, color=color,
+                 edgecolor=color)
+    sns.kdeplot(nsStat.sample, fill=True, alpha=0.4, linewidth=5, bw_adjust=1, label="NS disp.", color=color)
+
+    ax1.set_xlabel(xLabel, fontsize=fontSize + 2)
+    ax1.set_ylabel('Density ', fontsize=fontSize + 2)
+    #
+    ax1.tick_params(axis='x', labelsize=fontSize + 1)
+    ax1.tick_params(axis='y', labelsize=fontSize + 1)
+    ax1.set_xlim(vmin, vmax)
+    ax1.grid(True)
+    plt.legend(fontsize=fontSize)
+    # plt.savefig(os.path.join(iFolder, "Displacement_density_distribution.svg"), dpi=600)
+    plt.show()
+
 def VisualizeCorrelation(iCorrPath,
                          ewArray,
                          nsArray,
@@ -815,8 +868,8 @@ def VisualizeCorrelation(iCorrPath,
         for ax, title_ in zip(axs, ["East/West", "North/South"]):
             ax.axis('off')
             ax.set_title(title_)
-        ColorBar_(ax=axs[0], mapobj=imEW, cmap=cmap, vmin=ewvMin, vmax=ewvMin, orientation="vertical")
-        ColorBar_(ax=axs[1], mapobj=imNS, cmap=cmap, vmin=nsvMin, vmax=nsvMin, orientation="vertical")
+        ColorBar_(ax=axs[0], mapobj=imEW, cmap=cmap, vmin=ewvMin, vmax=ewvMax, orientation="vertical")
+        ColorBar_(ax=axs[1], mapobj=imNS, cmap=cmap, vmin=nsvMin, vmax=nsvMax, orientation="vertical")
 
     if not title:
         fig.suptitle(Path(iCorrPath).stem)
@@ -928,7 +981,7 @@ def VisualizeDisplacment(dispPath, vmin=-50, vmax=50, cmap="RdYlBu", title=None,
     return
 
 
-# ===========================================PLOT DATA =================================================================#
+# ===========================================PLOT DATA ================================================================#
 def Plot_residuals(sample, yLabel='Error [pix]', title=None, save=True, oFolder=None):
     stat = geoRT.cgeoStat(inputArray=sample, displayValue=False)
 
@@ -951,11 +1004,12 @@ def Plot_residuals(sample, yLabel='Error [pix]', title=None, save=True, oFolder=
     if title is not None:
         ax.set_title(title)
     if save == True:
-        plt.savefig(os.path.join(oFolder, title+ ".svg"), dpi=300)
+        plt.savefig(os.path.join(oFolder, title + ".svg"), dpi=300)
     return
 
 
-def Plot_residuals_before_after(sampleIni, sampleFinal, yLabel="Error [pix]",save=True,oFolder=None, title=None):
+def Plot_residuals_before_after(sampleIni, sampleFinal, yLabel="Error [pix]", save=True, oFolder=None, title=None,
+                                show=False):
     stat = geoRT.cgeoStat(inputArray=sampleIni, displayValue=False)
     print(
         title + "Ini :mean:{:.3f}, std:{:.3f}, RMSE:{:.3f}".format(float(stat.mean), float(stat.std), float(stat.RMSE)))
@@ -984,8 +1038,11 @@ def Plot_residuals_before_after(sampleIni, sampleFinal, yLabel="Error [pix]",sav
     if title is not None:
         ax.set_title(title)
     ax.legend()
-    if save ==True:
+    if save == True:
         plt.savefig(os.path.join(oFolder, title + ".svg"), dpi=300)
+    if show== True:
+        plt.show()
+    plt.close(fig)
     return
 
 
