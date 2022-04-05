@@ -130,7 +130,6 @@ class RasterInfo:
             for band_ in range(self.nbBand):
                 self.bandInfo.append(self.raster.GetRasterBand(band_ + 1).GetDescription())
                 self.noData = self.raster.GetRasterBand(band_ + 1).GetNoDataValue()
-            
 
         if printInfo == True:
             print(repr(RasterInfo(self.rasterPath)))
@@ -150,7 +149,10 @@ class RasterInfo:
         imageAsArray = np.array(raster.GetRasterBand(bandNumber).ReadAsArray())
         if self.noData != None:
             imageAsArray = np.ma.masked_where(imageAsArray <= self.noData, imageAsArray)
-            imageAsArray = np.copy(imageAsArray.filled(fill_value=np.nan))
+            try:
+                imageAsArray = np.copy(imageAsArray.filled(fill_value=np.nan))
+            except:
+                imageAsArray = np.copy(imageAsArray)
         return imageAsArray
 
     def ImageAsArray_Subset(self, xOffsetMin, xOffsetMax, yOffsetMin, yOffsetMax, bandNumber=1):
@@ -638,7 +640,7 @@ def SubsetRasters(rasterList, areaCoord, outputFolder=None, vrt=False, outputTyp
         format = "VRT"
     else:
         format = "GTiff"
-    params = gdal.TranslateOptions(projWin=areaCoord,format=format,outputType=outputType,noData=-32767)
+    params = gdal.TranslateOptions(projWin=areaCoord, format=format, outputType=outputType, noData=-32767)
     path = os.path.dirname(rasterList[0])
     oList = []
     for img_ in rasterList:
@@ -795,7 +797,7 @@ def CropBatch(rasterList, outputFolder, vrt=False, outputType=gdal.GDT_Float32):
 
     """
     imgList = rasterList
-    coord, dataDf = GetOverlapAreaOfRasters(rasterPathList=imgList,visu=False)
+    coord, dataDf = GetOverlapAreaOfRasters(rasterPathList=imgList, visu=False)
     if coord == 0:
         sys.exit("No overlapping")
     rasterInfo = RasterInfo(imgList[0])
@@ -1113,5 +1115,5 @@ if __name__ == '__main__':
     rasterList = fileRT.GetFilesBasedOnExtensions("/media/cosicorr/storage/Saif/Historical_Eq_NASA_project/IZMIT/temp")
     # coord,dataDf = GetOverlapAreaOfRasters(rasterPathList=rasterList)
     CropBatch(rasterList=rasterList,
-              outputFolder="/media/cosicorr/storage/Saif/Historical_Eq_NASA_project/IZMIT/temp/crp",vrt=True)
+              outputFolder="/media/cosicorr/storage/Saif/Historical_Eq_NASA_project/IZMIT/temp/crp", vrt=True)
     # print(coord)
