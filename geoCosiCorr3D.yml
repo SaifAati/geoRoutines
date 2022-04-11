@@ -265,7 +265,6 @@ dependencies:
     - qtconsole==5.0.2
     - qtpy==1.9.0
     - requests-futures==0.9.7
-    - rpcm==1.4.7
     - s3transfer==0.5.0
     - scikit-image==0.17.2
     - scikit-learn==0.24.2
@@ -273,7 +272,6 @@ dependencies:
     - seaborn==0.11.2
     - send2trash==1.5.0
     - soupsieve==2.1
-    - srtm4==1.1.5
     - terminado==0.9.2
     - tifffile==2020.9.3
     - tqdm==4.43.0
