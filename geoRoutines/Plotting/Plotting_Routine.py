@@ -612,8 +612,6 @@ def Animation_Rasters_Maps(im1, array1List, fig, figTitleList, saveAnimation=Fal
 ############################################### Distribution ###########################################################
 
 
-
-
 def PlotDistribution(inputArray, xlim=[], ylim=[0, 3], xLabel='Displacement [m]',
                      title="Displacement distribution before Offset Correction\n(full image)", nbins=50, fontSize=16,
                      svgFig=""):
@@ -825,6 +823,7 @@ def VisualizeDispDistribution(dispMapInfo, debug=False, vmin=None, vmax=None, fa
     # plt.savefig(os.path.join(iFolder, "Displacement_density_distribution.svg"), dpi=600)
     plt.show()
 
+
 def VisualizeCorrelation(iCorrPath,
                          ewArray,
                          nsArray,
@@ -835,7 +834,7 @@ def VisualizeCorrelation(iCorrPath,
                          cmap="RdYlBu",
                          save=True,
                          show=False,
-                         factor=1):
+                         factor=1, dpi=100):
     # import geospatialroutine.georoutines as geoRT
     # corrInfo = geoRT.RasterInfo(iCorrPath)
     ewStat = geoRT.cgeoStat(inputArray=ewArray, displayValue=False)
@@ -876,11 +875,11 @@ def VisualizeCorrelation(iCorrPath,
     else:
         fig.suptitle(title)
     if save:
-        plt.savefig(os.path.join(os.path.dirname(iCorrPath), Path(iCorrPath).stem + ".png"), dpi=400)
+        plt.savefig(os.path.join(os.path.dirname(iCorrPath), Path(iCorrPath).stem + ".png"), dpi=dpi)
     if show:
         plt.show()
     fig.clear()
-    # plt.close(fig)
+    plt.close(fig)
     return
 
 
@@ -1040,7 +1039,7 @@ def Plot_residuals_before_after(sampleIni, sampleFinal, yLabel="Error [pix]", sa
     ax.legend()
     if save == True:
         plt.savefig(os.path.join(oFolder, title + ".svg"), dpi=300)
-    if show== True:
+    if show == True:
         plt.show()
     plt.close(fig)
     return
