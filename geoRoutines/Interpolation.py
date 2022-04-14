@@ -215,7 +215,18 @@ def Interpolate2D(inArray, x, y, kind='cubic'):
     # print(inArray.shape,x,y)
 
     if kind == "RectBivariateSpline":
+        # try:
+            # print("len=",len(np.arange(0, lin, 1)), len(np.arange(0, col, 1)))
         f = RectBivariateSpline(np.arange(0, lin, 1), np.arange(0, col, 1), inArray, kx=3, ky=3, s=0)
+        # except:
+        #     print("___ERROR___")
+        #     # f = RectBivariateSpline(np.arange(0, lin, 1), np.arange(0, col, 1), inArray, kx=3, ky=3, s=0)
+        #     print(len(np.arange(0, lin, 1)),len( np.arange(0, col, 1)))
+        #     print(col)
+        #     f = RectBivariateSpline(np.arange(0, lin, 1), np.arange(0, col, 1), inArray, kx=1, ky=1, s=0)
+        #
+        #     sys.exit()
+
         if len(x) > 1 and len(y) > 1:
             res = []
             # res = p_map(_2Dinterp, len(x)*[f], x, y,num_cpus=50)
