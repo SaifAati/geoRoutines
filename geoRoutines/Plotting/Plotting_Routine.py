@@ -827,6 +827,7 @@ def VisualizeDispDistribution(dispMapInfo, debug=False, vmin=None, vmax=None, fa
 def VisualizeCorrelation(iCorrPath,
                          ewArray,
                          nsArray,
+                         dz= [],
                          snrArray=[],
                          vmin=None,
                          vmax=None,
@@ -859,6 +860,16 @@ def VisualizeCorrelation(iCorrPath,
             ax.axis('off')
             ax.set_title(title_)
         # ColorBar_(ax=axs[-1], mapobj=im1, cmap=cmap, vmin=vmin, vmax=vmax, orientation="vertical")
+    elif len(dz)!=0:
+        fig, axs = plt.subplots(1, 3, figsize=(16, 9))
+
+        axs[0].imshow(ewArray, cmap=cmap, vmin=vmin, vmax=vmax)
+        im1 = axs[1].imshow(nsArray, cmap=cmap, vmin=vmin, vmax=vmax)
+        axs[2].imshow(dz, cmap="gray", vmin=-1.5, vmax=1.5)
+        for ax, title_ in zip(axs, ["East/West", "North/South","dz"]):
+            ax.axis('off')
+            ax.set_title(title_)
+
     else:
         fig, axs = plt.subplots(1, 2, figsize=(16, 9))
 
