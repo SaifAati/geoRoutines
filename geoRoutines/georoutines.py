@@ -1095,6 +1095,49 @@ def Merge(inputList, output):
     WriteRaster(oRasterPath=output, descriptions=descriptions, arrayList=listArrays, epsg=rasterInfo.EPSG_Code,
                 geoTransform=rasterInfo.geoTrans)
 
+def MergeL1BTiles(inFolder, oFolder=None):
+    """
+    This function merge L1Bs (raw image with RPCs) into a single image then add the RPC tag to the metadata
+    Args:
+        inFolder: folder path that contains image tiles : str
+        oFolder: output folder path, if None the output image will be saved in the same input folder :str
+
+    Returns:
+
+    """
+    tiles = fileRT.GetFilesBasedOnExtension(path=inFolder, filter="IMG*.TIF")
+    print("nbTiles:{}".format(len(tiles)))
+    ### Using sub process
+    cmd = ["gdal_merge.py"]
+    if oFolder == None:
+        oFolder = inFolder
+    oImg = os.path.join(oFolder, Path(tiles[0]).stem[0:-5] + "_merged.tif")
+
+    cmd.extend(["-o", oImg])
+    cmd.extend(["-ot " + "UInt16"])
+    cmd.extend(tiles)
+
+    call = ""
+    for cmd_ in cmd:
+        call += cmd_ + " "
+
+    os.system(call)
+
+
+    # Open the files you want to transfer RPCs from and to
+    tif_with_RPCs = gdal.Open(tiles[0], gdalconst.GA_ReadOnly)
+    tif_without_RPCs = gdal.Open(oImg, gdalconst.GA_Update)
+
+    # get the RPCs from the first file ...
+    rpcs = tif_with_RPCs.GetMetadata('RPC')
+
+    # ... write them to the second file
+    tif_without_RPCs.SetMetadata(rpcs, 'RPC')
+
+    # close the files
+    del (tif_with_RPCs)
+    del (tif_without_RPCs)
+    return
 
 if __name__ == '__main__':
     # path = "/home/cosicorr/0-WorkSpace/3D-Correlation_project/Ridgecrest/7p1_3DDA/Sets/WV_Spot_Sets/WV_Spot_sets/Results/EW_WV_Spot_MB_3DDA.tif"
